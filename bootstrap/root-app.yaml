@@ -1,0 +1,19 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root
+  namespace: argocd
+  # No deletion finalizer: deleting the root must not cascade to child apps.
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/mujak27/k8s-crossplane
+    targetRevision: main
+    path: infra
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
