@@ -13,7 +13,7 @@ spec:
           - stage: compositions
             namespace: crossplane-system
             path: 01-tls-ingress
-            include: '{xrd.yaml,composition.yaml,functions.yaml}'
+            include: '{xrd.yaml,composition.yaml,functions.yaml,rbac.yaml}'
           - stage: xr
             namespace: default
             path: 01-tls-ingress/examples
