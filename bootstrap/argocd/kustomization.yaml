@@ -5,4 +5,4 @@ resources:
   - namespace.yaml
   - https://raw.githubusercontent.com/argoproj/argo-cd/v3.5.3/manifests/install.yaml
 patches:
-  - path: application-health.yaml
+  - path: progressive-syncs.yaml
