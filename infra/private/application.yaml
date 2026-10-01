@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: private
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  # No deletion finalizer: deleting this app must not cascade to private apps.
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:mujak27/k8s-crossplane-private.git
+    targetRevision: main
+    path: infra
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true

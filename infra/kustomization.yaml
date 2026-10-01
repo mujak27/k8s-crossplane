@@ -3,4 +3,4 @@ kind: Kustomization
 resources:
   - cert-manager
   - crossplane
-  - homelab-pki
+  - private
