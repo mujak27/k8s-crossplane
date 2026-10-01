@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: istiod
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-20"
+spec:
+  project: default
+  source:
+    repoURL: https://blob.istio.io/istio-release/charts
+    chart: istiod
+    targetRevision: 1.31.1
+    helm:
+      releaseName: istiod
+      valuesObject:
+        replicaCount: 1
+        autoscaleEnabled: false
+        base:
+          # Avoid failurePolicy field ownership conflicts with istiod under SSA.
+          validationFailurePolicy: Fail
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: istio-system
+  # Sync only after istio-base CRDs are Established.
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
