@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: istio-system
+  annotations:
+    # Create namespaces before the root creates the Istio Applications.
+    argocd.argoproj.io/sync-wave: "-40"
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: istio-ingress
+  annotations:
+    argocd.argoproj.io/sync-wave: "-40"
+  # Do not disable injection: the gateway chart requires istiod's webhook.
