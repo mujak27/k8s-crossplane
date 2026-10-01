@@ -1,0 +1,40 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: nginx-ingress
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"
+spec:
+  project: default
+  source:
+    repoURL: https://helm.nginx.com/stable
+    chart: nginx-ingress
+    targetRevision: 2.7.3
+    helm:
+      releaseName: nginx-ingress
+      skipCrds: true
+      valuesObject:
+        controller:
+          enableCustomResources: false
+          ingressClass:
+            name: nginx
+            create: true
+            setAsDefaultIngress: false
+          service:
+            type: NodePort
+            # Allow traffic through any node with a single controller replica.
+            externalTrafficPolicy: Cluster
+            httpPort:
+              nodePort: 30080
+            httpsPort:
+              nodePort: 30443
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: nginx-ingress
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
