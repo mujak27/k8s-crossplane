@@ -8,7 +8,7 @@ Both generated Applications read `main` from
 [`mujak27/crossplane-compilations`](https://github.com/mujak27/crossplane-compilations):
 
 1. `tls-ingress-compositions`: path `01-tls-ingress`, selecting only `xrd.yaml`,
-   `composition.yaml`, and `functions.yaml`.
+   `composition.yaml`, `functions.yaml`, and `rbac.yaml`.
 2. `tls-ingress-xr`: path `01-tls-ingress/examples`, selecting `xr.yaml`.
 
 Explicit, non-recursive directory selection prevents the definitions app from
