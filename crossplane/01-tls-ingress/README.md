@@ -4,12 +4,21 @@ The root app discovers `infra/tls-ingress`, which points at
 `crossplane/01-tls-ingress`. Its Kustomization installs one ApplicationSet for
 the TLS dependency group, generating two Applications:
 
-1. `tls-ingress-compositions`: `compositions/` holds XRDs, Compositions,
-   and any required Crossplane package/configuration manifests.
-2. `tls-ingress-xr`: `xr/` holds example composite resources.
+Both generated Applications read `main` from
+[`mujak27/crossplane-compilations`](https://github.com/mujak27/crossplane-compilations):
 
-Both directories are empty scaffolds. Add manifests to each directory and list
-them in its `kustomization.yaml`; no TLS composition or XR is supplied yet.
+1. `tls-ingress-compositions`: path `01-tls-ingress`, selecting only `xrd.yaml`,
+   `composition.yaml`, and `functions.yaml`.
+2. `tls-ingress-xr`: path `01-tls-ingress/examples`, selecting `xr.yaml`.
+
+Explicit, non-recursive directory selection prevents the definitions app from
+including XR examples or rendering scripts. Update the include patterns when
+adding files. The local `compositions/` and `xr/` scaffolds are no longer used.
+Changes to the definitions/examples belong in the external repository; the
+ApplicationSet and parent Application remain in this repository.
+
+The current external XR example references the `app` Service on port 8080 and
+the `letsencrypt-prod` ClusterIssuer. Those dependencies must exist in the cluster.
 
 ## Ordering and health
 

@@ -12,8 +12,12 @@ spec:
         elements:
           - stage: compositions
             namespace: crossplane-system
+            path: 01-tls-ingress
+            include: '{xrd.yaml,composition.yaml,functions.yaml}'
           - stage: xr
             namespace: default
+            path: 01-tls-ingress/examples
+            include: xr.yaml
   # This set owns just the TLS dependency group. Other groups get their own set.
   strategy:
     type: RollingSync
@@ -42,9 +46,12 @@ spec:
     spec:
       project: default
       source:
-        repoURL: https://github.com/mujak27/k8s-crossplane
+        repoURL: https://github.com/mujak27/crossplane-compilations
         targetRevision: main
-        path: 'crossplane/01-tls-ingress/{{.stage}}'
+        path: '{{.path}}'
+        directory:
+          recurse: false
+          include: '{{.include}}'
       destination:
         server: https://kubernetes.default.svc
         namespace: '{{.namespace}}'
