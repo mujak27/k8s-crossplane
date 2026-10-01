@@ -1,0 +1,54 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: tls-ingress
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions:
+    - missingkey=error
+  generators:
+    - list:
+        elements:
+          - stage: compositions
+            namespace: crossplane-system
+          - stage: xr
+            namespace: default
+  # This set owns just the TLS dependency group. Other groups get their own set.
+  strategy:
+    type: RollingSync
+    rollingSync:
+      steps:
+        - matchExpressions:
+            - key: k8s-crossplane/stage
+              operator: In
+              values:
+                - compositions
+          maxUpdate: 1
+        - matchExpressions:
+            - key: k8s-crossplane/stage
+              operator: In
+              values:
+                - xr
+          maxUpdate: 1
+  syncPolicy:
+    preserveResourcesOnDeletion: true
+  template:
+    metadata:
+      name: 'tls-ingress-{{.stage}}'
+      labels:
+        k8s-crossplane/dependency-group: tls-ingress
+        k8s-crossplane/stage: '{{.stage}}'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/mujak27/k8s-crossplane
+        targetRevision: main
+        path: 'crossplane/01-tls-ingress/{{.stage}}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{.namespace}}'
+      # RollingSync triggers syncs itself; generated apps must not auto-sync.
+      syncPolicy:
+        syncOptions:
+          - ServerSideApply=true
