@@ -12,8 +12,9 @@ them in its `kustomization.yaml`; no TLS composition or XR is supplied yet.
 
 Apply `bootstrap/argocd` before syncing the parent. Its Application health
 customization makes the parent wait until the composition app is **Synced and
-Healthy** before creating the XR app. This customization also makes the root
-wait for its earlier infrastructure waves. Ensure required Crossplane providers
+Healthy** before creating the XR app. Only Applications labelled
+`k8s-crossplane/sync-gate: "true"` are gated; unrelated infrastructure retains
+its existing behavior. Ensure Crossplane and its required providers
 and functions are installed and healthy before introducing XRs.
 
 Sync waves gate initial creation, not later independent auto-syncs of existing

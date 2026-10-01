@@ -3,9 +3,12 @@ kind: ConfigMap
 metadata:
   name: argocd-cm
 data:
-  # Application health is not built in. Propagate it so parent sync waves wait
-  # for child apps to be both Synced and Healthy before creating the next wave.
+  # Application health is not built in. Gate only explicitly labelled children,
+  # preserving the existing sync-wave behavior for unrelated infrastructure.
   resource.customizations.health.argoproj.io_Application: |
+    if obj.metadata.labels == nil or obj.metadata.labels["k8s-crossplane/sync-gate"] ~= "true" then
+      return { status = "Healthy", message = "Application is not a sync gate" }
+    end
     hs = { status = "Progressing", message = "Waiting for child application to sync" }
     if obj.status ~= nil then
       if obj.status.health ~= nil then
