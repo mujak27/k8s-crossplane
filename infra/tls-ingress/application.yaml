@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tls-ingress
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+  # No deletion finalizer: deleting the parent must not cascade to child apps.
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/mujak27/k8s-crossplane
+    targetRevision: main
+    path: crossplane/01-tls-ingress
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
