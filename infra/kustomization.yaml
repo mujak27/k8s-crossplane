@@ -9,3 +9,4 @@ resources:
   - crossplane
   - nginx-ingress
   - private
+  - tls-ingress
