@@ -1,14 +1,14 @@
 apiVersion: platform.mujak.com/v1alpha1
 kind: XIngressTLS
 metadata:
-  name: demo
+  name: nginx
   namespace: default
 spec:
   hostname: app.mujak.com
   ingress:
     className: nginx
     serviceName: app
-    servicePort: 8080
+    servicePort: 80
   certificate:
     issuerRef:
       name: selfsigned-ca
