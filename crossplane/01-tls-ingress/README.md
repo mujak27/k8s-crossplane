@@ -4,21 +4,30 @@ The root app discovers `infra/tls-ingress`, which points at
 `crossplane/01-tls-ingress`. Its Kustomization installs one ApplicationSet for
 the TLS dependency group, generating two Applications:
 
-Both generated Applications read `main` from
-[`mujak27/crossplane-compilations`](https://github.com/mujak27/crossplane-compilations):
+Both generated Applications read `main`, but use separate repositories:
 
-1. `tls-ingress-compositions`: path `01-tls-ingress`, selecting only `xrd.yaml`,
-   `composition.yaml`, `functions.yaml`, and `rbac.yaml`.
-2. `tls-ingress-xr`: path `01-tls-ingress/examples`, selecting `xr.yaml`.
+1. `tls-ingress-compositions`: repository
+   [`mujak27/crossplane-compilations`](https://github.com/mujak27/crossplane-compilations),
+   path `01-tls-ingress`, selecting only `xrd.yaml`, `composition.yaml`,
+   `functions.yaml`, and `rbac.yaml`. The RBAC grants Crossplane permission to
+   manage the composed Certificates and Ingresses.
+2. `tls-ingress-xr`: repository
+   [`mujak27/k8s-crossplane`](https://github.com/mujak27/k8s-crossplane),
+   path `crossplane/01-tls-ingress/xr`, selecting `xr.yaml`.
 
 Explicit, non-recursive directory selection prevents the definitions app from
 including XR examples or rendering scripts. Update the include patterns when
-adding files. The local `compositions/` and `xr/` scaffolds are no longer used.
-Changes to the definitions/examples belong in the external repository; the
-ApplicationSet and parent Application remain in this repository.
+adding files. The local `compositions/` scaffold is not used. Manage XR instances
+in this repository's `xr/` directory; changes to the reusable definitions belong
+in the external repository. The ApplicationSet and parent Application also remain
+in this repository. The XR Kustomization supports local rendering, while Argo CD
+uses the explicit directory include above.
 
-The current external XR example references the `app` Service on port 8080 and
-the `letsencrypt-prod` ClusterIssuer. Those dependencies must exist in the cluster.
+The local XR references the `app` Service on port 8080 and
+the `selfsigned-ca` ClusterIssuer managed by `k8s-crossplane-private` under
+`infra/selfsigned/resources`. That issuer signs application certificates using
+the root CA created by `selfsigned-bootstrap`. The Service and ready issuer must
+exist in the cluster; clients must trust the private root CA.
 
 ## Ordering and health
 
