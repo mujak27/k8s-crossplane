@@ -14,7 +14,7 @@ spec:
             namespace: crossplane-system
             repoURL: https://github.com/mujak27/crossplane-compilations
             path: 01-tls-ingress
-            include: '{xrd.yaml,composition.yaml,functions.yaml,rbac.yaml}'
+            include: '{xrd.yaml,composition.yaml,rbac.yaml}'
           - stage: xr
             namespace: default
             repoURL: https://github.com/mujak27/k8s-crossplane
