@@ -24,7 +24,10 @@ in this repository. The XR Kustomization supports local rendering, while Argo CD
 uses the explicit directory include above.
 
 The local XR references the `app` Service on port 8080 and
-the `letsencrypt-prod` ClusterIssuer. Those dependencies must exist in the cluster.
+the `selfsigned-ca` ClusterIssuer managed by `k8s-crossplane-private` under
+`infra/selfsigned/resources`. That issuer signs application certificates using
+the root CA created by `selfsigned-bootstrap`. The Service and ready issuer must
+exist in the cluster; clients must trust the private root CA.
 
 ## Ordering and health
 

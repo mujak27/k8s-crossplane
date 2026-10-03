@@ -11,5 +11,5 @@ spec:
     servicePort: 8080
   certificate:
     issuerRef:
-      name: letsencrypt-prod
+      name: selfsigned-ca
       kind: ClusterIssuer
