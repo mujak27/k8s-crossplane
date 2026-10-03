@@ -12,11 +12,13 @@ spec:
         elements:
           - stage: compositions
             namespace: crossplane-system
+            repoURL: https://github.com/mujak27/crossplane-compilations
             path: 01-tls-ingress
             include: '{xrd.yaml,composition.yaml,functions.yaml,rbac.yaml}'
           - stage: xr
             namespace: default
-            path: 01-tls-ingress/examples
+            repoURL: https://github.com/mujak27/k8s-crossplane
+            path: crossplane/01-tls-ingress/xr
             include: xr.yaml
   # This set owns just the TLS dependency group. Other groups get their own set.
   strategy:
@@ -46,7 +48,7 @@ spec:
     spec:
       project: default
       source:
-        repoURL: https://github.com/mujak27/crossplane-compilations
+        repoURL: '{{.repoURL}}'
         targetRevision: main
         path: '{{.path}}'
         directory:
