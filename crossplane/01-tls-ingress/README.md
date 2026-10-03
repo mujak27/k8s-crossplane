@@ -9,7 +9,7 @@ Both generated Applications read `main`, but use separate repositories:
 1. `tls-ingress-compositions`: repository
    [`mujak27/crossplane-compilations`](https://github.com/mujak27/crossplane-compilations),
    path `01-tls-ingress`, selecting only `xrd.yaml`, `composition.yaml`,
-   `functions.yaml`, and `rbac.yaml`. The RBAC grants Crossplane permission to
+   and `rbac.yaml`. The RBAC grants Crossplane permission to
    manage the composed Certificates and Ingresses.
 2. `tls-ingress-xr`: repository
    [`mujak27/k8s-crossplane`](https://github.com/mujak27/k8s-crossplane),
@@ -30,6 +30,16 @@ the root CA created by `selfsigned-bootstrap`. The Service and ready issuer must
 exist in the cluster; clients must trust the private root CA.
 
 ## Ordering and health
+
+Shared Functions are managed separately by the `crossplane-shared` Application,
+registered in `infra/crossplane-shared` and sourced from `crossplane/_shared`.
+The TLS compositions Application no longer selects the external `functions.yaml`.
+The shared app has sync wave 0, between Crossplane (-10) and the TLS parent (10).
+These waves order Application creation, not package readiness; ensure both shared
+Functions are installed and Healthy before syncing TLS compositions or XRs.
+When migrating an existing installation, update the TLS compositions app's source
+selection without pruning, then sync `crossplane-shared` to take ownership of the
+existing Functions. Do not prune the Functions from the old app.
 
 Apply `bootstrap/argocd` before syncing the parent. Its ConfigMap patch enables
 ApplicationSet Progressive Syncs (beta in the pinned Argo CD version). On an
