@@ -12,17 +12,13 @@ tls-ingress-custom-compositions: XRD + Composition + aggregate RBAC
 ```
 
 Both generated Applications read this repository's `main` and use Kustomize.
-The compositions layer imports only the upstream XRD and Composition, pinned to
-`749abc378474fc80939b59ceb11457ae7e4a4300` in
-[`crossplane-compilations`](https://github.com/mujak27/crossplane-compilations/tree/749abc378474fc80939b59ceb11457ae7e4a4300/02-tls-ingress-custom).
-It patches the certificate health enum to accept `Expired`, which the function
-already emits. Remote files must be accessible to the Argo CD repo-server.
-Development runtime annotations and upstream example XRs are not imported.
-The Function package uses release `v0.1.0`, but its source release tag
-`function-tls-ingress-v0.1.0` predates the separate `XIngressTLSCustom` kind and
-still defines `XIngressTLS`. Do not substitute that tag into these definition
-URLs: it would collide with the original example. Use a later definitions tag
-when one exists and verify its XRD and Composition before updating.
+The compositions layer imports the upstream definitions-only Kustomize base at
+[`tls-ingress-custom-v0.1.0`](https://github.com/mujak27/crossplane-compilations/releases/tag/tls-ingress-custom-v0.1.0).
+It contains the independent `XIngressTLSCustom` XRD and Composition, including
+the `Expired` health enum value. The Argo CD repo-server must be able to fetch
+the GitHub base. Functions and upstream example XRs are not imported.
+Definitions and the Function package are released separately; no new runtime
+package is needed for this definitions release.
 
 The shared Functions app owns `ghcr.io/mujak27/function-tls-ingress:v0.1.0`.
 Anonymous access to that tag was verified during integration. Its runtime is

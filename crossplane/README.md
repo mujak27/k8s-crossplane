@@ -57,10 +57,10 @@ Kustomize `resources` URLs are literal strings. YAML anchors cannot interpolate
 part of a URL or share values across files, and Kustomize replacements do not
 rewrite remote resource URLs before fetching them. For a few files, repeating
 the pinned ref is preferable to adding a templating or generation tool.
-If the upstream publishes a dedicated Kustomize base, one Git base URL with
+When upstream publishes a dedicated Kustomize base, one Git base URL with
 `?ref=<tag-or-commit>` can select the whole release using a single reference.
 That requires an upstream `kustomization.yaml` selecting definitions only;
-the current custom example does not provide one.
+the custom example uses this form at `tls-ingress-custom-v0.1.0`.
 
 ## Validation and rollout
 
