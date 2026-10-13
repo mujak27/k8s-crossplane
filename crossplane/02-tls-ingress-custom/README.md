@@ -1,7 +1,8 @@
 # TLS ingress with the GHCR custom function
 
 This is additive: the original `XIngressTLS` and `app.mujak.com` remain unchanged.
-The root discovers `infra/tls-ingress-custom`, whose parent installs a separate
+The root includes `crossplane/kustomization.yaml` via `infra`, enabling the parent
+`crossplane/_applications/tls-ingress-custom.yaml`. It installs a separate
 ApplicationSet with the existing compositions-to-XR RollingSync pattern:
 
 ```text
@@ -17,6 +18,11 @@ The compositions layer imports only the upstream XRD and Composition, pinned to
 It patches the certificate health enum to accept `Expired`, which the function
 already emits. Remote files must be accessible to the Argo CD repo-server.
 Development runtime annotations and upstream example XRs are not imported.
+The Function package uses release `v0.1.0`, but its source release tag
+`function-tls-ingress-v0.1.0` predates the separate `XIngressTLSCustom` kind and
+still defines `XIngressTLS`. Do not substitute that tag into these definition
+URLs: it would collide with the original example. Use a later definitions tag
+when one exists and verify its XRD and Composition before updating.
 
 The shared Functions app owns `ghcr.io/mujak27/function-tls-ingress:v0.1.0`.
 Anonymous access to that tag was verified during integration. Its runtime is

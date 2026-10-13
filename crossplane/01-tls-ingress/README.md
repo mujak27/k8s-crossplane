@@ -1,6 +1,7 @@
 # TLS ingress example
 
-The root app discovers `infra/tls-ingress`, which points at
+The root app includes `crossplane/kustomization.yaml` via `infra`, which enables
+`crossplane/_applications/tls-ingress.yaml`. That parent points at
 `crossplane/01-tls-ingress`. Its Kustomization installs one ApplicationSet for
 the TLS dependency group, generating two Applications:
 
@@ -32,7 +33,8 @@ exist in the cluster; clients must trust the private root CA.
 ## Ordering and health
 
 Shared Functions are managed separately by the `crossplane-shared` Application,
-registered in `infra/crossplane-shared` and sourced from `crossplane/_shared`.
+registered in `crossplane/_applications/shared.yaml` and sourced from
+`crossplane/_shared`.
 The TLS compositions Application no longer selects the external `functions.yaml`.
 The shared app has sync wave 0, between Crossplane (-10) and the TLS parent (10).
 These waves order Application creation, not package readiness; ensure both shared
@@ -61,7 +63,8 @@ packages are ready before adding XRs. Manual child syncs bypass this ordering.
 
 For a database or storage group, create a separate directory and ApplicationSet
 with its own name, generated app names, and source paths. Register a corresponding
-parent Application in `infra/`. Each set runs its own compositions-to-XR steps:
+parent Application in `crossplane/_applications/`, enabled through
+`crossplane/kustomization.yaml`. Each set runs its own compositions-to-XR steps:
 
 ```text
 TLS ApplicationSet:      TLS compositions      -> TLS XRs
