@@ -1,0 +1,17 @@
+apiVersion: platform.mujak.com/v1alpha1
+kind: XIngressTLSCustom
+metadata:
+  name: nginx-custom
+  namespace: default
+spec:
+  compositionRef:
+    name: xingresstls-custom.platform.mujak.com
+  hostname: app-custom.mujak.com
+  ingress:
+    className: nginx
+    serviceName: app
+    servicePort: 80
+  certificate:
+    issuerRef:
+      name: selfsigned-ca
+      kind: ClusterIssuer

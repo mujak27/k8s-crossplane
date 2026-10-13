@@ -11,3 +11,4 @@ resources:
   - nginx-ingress
   - private
   - tls-ingress
+  - tls-ingress-custom
