@@ -9,16 +9,16 @@ such as cert-manager and ingress controllers stays under `infra/`.
 infra/kustomization.yaml
   -> ../crossplane
      kustomization.yaml       # registry of enabled Crossplane Applications
-     _applications/           # controller, shared Functions app, project parents
-     _shared/                 # shared Function packages
-     01-tls-ingress/           # ApplicationSet + original XR
-     02-tls-ingress-custom/    # ApplicationSet + definitions overlay + custom XR
+     _controller/             # controller Application
+     _shared/                 # Application + shared Function packages
+     01-tls-ingress/           # Application + ApplicationSet + original XR
+     02-tls-ingress-custom/    # Application + ApplicationSet + definitions + XR
 ```
 
 ## Enabling projects
 
-Add a parent Application to `_applications/` and list it in
-`crossplane/kustomization.yaml`. Give the project its own directory and
+Add `application.yaml` to the project's directory and reference that file
+directly in `crossplane/kustomization.yaml`. Give the project its own directory and
 ApplicationSet, with compositions-to-XR RollingSync when needed. Preserve
 separate ownership of shared Functions in `_shared/`.
 
@@ -27,8 +27,13 @@ Do not add project workload directories or `_shared/` directly to it: doing so
 would bypass their Applications, flatten dependency ordering and create duplicate
 Argo ownership. `infra/` has just one reference to the Crossplane registry.
 
-Application names, source paths and sync waves do not change when moving their
-manifest files into `_applications/`. This keeps the existing apps and their
+Keep each directory's workload Kustomization separate: it must not include its
+own parent `application.yaml`, or the parent would manage itself. The top-level
+registry selects the Application file; the Application selects the directory's
+workload Kustomization.
+
+Application names, source paths and sync waves do not change when colocating their
+manifest files with their projects. This keeps the existing apps and their
 tracked workloads intact. No pruning or deletion finalizers are enabled.
 Removing an entry stops declaring the Application, but with pruning disabled
 the existing Application remains and can keep managing its workloads. Retiring

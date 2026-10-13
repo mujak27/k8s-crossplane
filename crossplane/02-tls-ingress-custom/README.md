@@ -2,7 +2,7 @@
 
 This is additive: the original `XIngressTLS` and `app.mujak.com` remain unchanged.
 The root includes `crossplane/kustomization.yaml` via `infra`, enabling the parent
-`crossplane/_applications/tls-ingress-custom.yaml`. It installs a separate
+`crossplane/02-tls-ingress-custom/application.yaml`. It installs a separate
 ApplicationSet with the existing compositions-to-XR RollingSync pattern:
 
 ```text
