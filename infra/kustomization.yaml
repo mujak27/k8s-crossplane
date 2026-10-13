@@ -6,8 +6,6 @@ resources:
   - istiod
   - istio-ingress
   - cert-manager
-  - crossplane
-  - crossplane-shared
+  - ../crossplane
   - nginx-ingress
   - private
-  - tls-ingress

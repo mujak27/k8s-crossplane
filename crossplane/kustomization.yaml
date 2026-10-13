@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Enabled Crossplane Applications only. Workloads are synced by their own apps.
+resources:
+  - _controller/application.yaml
+  - _shared/application.yaml
+  - 01-tls-ingress/application.yaml
+  - 02-tls-ingress-custom/application.yaml
