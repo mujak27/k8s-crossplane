@@ -6,7 +6,7 @@ The root includes `crossplane/kustomization.yaml` via `infra`, enabling the pare
 ApplicationSet with the existing compositions-to-XR RollingSync pattern:
 
 ```text
-crossplane-shared: function-tls-ingress v0.1.0
+crossplane-shared: function-tls-ingress v0.1.2
 tls-ingress-custom-compositions: XRD + Composition + aggregate RBAC
   -> tls-ingress-custom-xr: default/nginx-custom
 ```
@@ -20,9 +20,14 @@ the GitHub base. Functions and upstream example XRs are not imported.
 Definitions and the Function package are released separately; no new runtime
 package is needed for this definitions release.
 
-The shared Functions app owns `ghcr.io/mujak27/function-tls-ingress:v0.1.0`.
-Anonymous access to that tag was verified during integration. Its runtime is
-**linux/amd64 only**; do not install on an ARM64-only cluster. The custom aggregate
+The shared Functions app owns `ghcr.io/mujak27/function-tls-ingress:v0.1.2`.
+Release tag `function-tls-ingress-v0.1.2` points to
+`c5623438dfbbf35ff50fd79612d64fe9996bf69f`; the anonymously verified package
+digest is `sha256:b6feffca55f78a2a317cb8431d0eaafab2609137a813ac8719fd12590bb2d2d6`
+([successful release workflow](https://github.com/mujak27/crossplane-compilations/actions/runs/38611128462)).
+The release was built for **linux/amd64**. Validate the target cluster's runtime
+compatibility before rollout; node architecture alone does not establish whether
+cross-architecture emulation is available. The custom aggregate
 ClusterRole grants native Certificate/Ingress permissions without taking ownership
 of the original example's role. Functions, XRDs, Compositions and ClusterRoles are
 cluster-scoped; the XR and composed resources are namespaced.
@@ -46,11 +51,21 @@ cluster-scoped; the XR and composed resources are namespaced.
 The XR creates Certificate and Ingress `default/nginx-custom` and uses Secret
 `default/nginx-custom-tls`. Its distinct name and hostname avoid collisions with
 the original XR. The function does not create the backend Service or issuer.
-No auto-ready step is added; certificate health is not composite readiness.
+No auto-ready step is added. The custom function considers provisioning ready when
+the Certificate is Ready=True for its current generation with a valid future
+expiry, and the observed Ingress matches its desired configuration. An empty
+Ingress load-balancer status is acceptable; it does not gate provisioning
+readiness. HTTPS trust and backend connectivity are separate traffic checks and
+must be reported independently, even when the XR is ready.
+
+Rollback by restoring the previous immutable Function pin
+`ghcr.io/mujak27/function-tls-ingress:v0.1.0`; this restores the previous
+readiness behavior. Do not test rollback without approval.
 
 Pruning and resource-deletion finalizers remain disabled. Removing these apps
 does not remove deployed resources; clean up explicitly if retiring the example.
-No cluster deployment was performed as part of this integration.
+No cluster deployment was performed as part of this change. Live rollout requires
+explicit approval and verification of runtime compatibility on the target cluster.
 
 ## Local validation
 
