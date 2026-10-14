@@ -17,4 +17,4 @@ kind: Function
 metadata:
   name: function-tls-ingress
 spec:
-  package: ghcr.io/mujak27/function-tls-ingress:v0.1.0
+  package: ghcr.io/mujak27/function-tls-ingress:v0.1.2
