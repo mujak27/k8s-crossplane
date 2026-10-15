@@ -8,4 +8,5 @@ resources:
   - cert-manager
   - ../crossplane
   - nginx-ingress
+  - kube-state-metrics
   - private
