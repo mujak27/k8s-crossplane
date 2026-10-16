@@ -9,4 +9,5 @@ resources:
   - ../crossplane
   - nginx-ingress
   - kube-state-metrics
+  - metrics-server
   - private
