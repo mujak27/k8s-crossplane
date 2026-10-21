@@ -23,8 +23,10 @@ Record before creating files:
 
 - Upstream repository: default `mujak27/crossplane-compilations`. Use another
   only when the user explicitly requests it; record that request.
-- Project ID and upstream path: drop the numeric prefix
-  (`02-tls-ingress-custom` becomes `tls-ingress-custom`).
+- Upstream path: record the exact published directory path, including its
+  numeric prefix (`02-tls-ingress-custom`). Remote resource URLs use that path.
+- Local project ID: remove the ordinal prefix only where local naming uses a
+  project ID (`02-tls-ingress-custom` becomes `tls-ingress-custom`).
 - Definitions ref: pin per the version convention in `crossplane/README.md`.
   Read the pinned base's `kustomization.yaml`; it must select only the XRD and
   Composition, not Functions, example XRs, render scripts, or RBAC.
@@ -163,11 +165,11 @@ Ordering is not readiness:
 - Parent sync waves and RollingSync order Application creation only. They do
   not prove Function health, XRD establishment, RBAC effectiveness, or
   composed resource readiness.
-- Sync `crossplane-shared` and verify the Function package is Installed and
-  Healthy before syncing XRs. Confirm the XRD is Established and the
-  Composition is selected. Check only the prerequisites the function actually
-  requires, such as an issuer, ingress, gateway, backend service, or
-  EnvironmentConfig.
+- Only after explicit live-sync approval, sync `crossplane-shared` and verify
+  the Function package is Installed and Healthy before syncing XRs. Confirm the
+  XRD is Established and the Composition is selected. Check only the
+  prerequisites the function actually requires, such as an issuer, ingress,
+  gateway, backend service, or EnvironmentConfig.
 - Rollout stays blocked until every required prerequisite and compatibility
   claim is verified; preparatory wiring may continue, but do not report the
   deployment as ready.
