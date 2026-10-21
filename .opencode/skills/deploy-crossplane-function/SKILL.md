@@ -5,6 +5,10 @@ description: Deploy a custom Crossplane function into this GitOps repository fro
 
 # Deploy a Crossplane function
 
+Read `crossplane/README.md` first. It is the source of truth for registry,
+version, ownership, and standard render conventions; this skill adds deployment
+decisions and completion criteria on top.
+
 This skill supplies the Crossplane contract, wiring, rollout, and validation to
 `plan-to-tickets`. Load that coordinator and follow its worktree, design/plan,
 ticket, and implementation gates; keep orchestration there.
@@ -21,40 +25,49 @@ Record before creating files:
   only when the user explicitly requests it; record that request.
 - Project ID and upstream path: drop the numeric prefix
   (`02-tls-ingress-custom` becomes `tls-ingress-custom`).
-- Definitions ref: a release tag (preferred) or commit whose base contains the
-  intended XRD and Composition. `main` is the legacy source, not a pin.
+- Definitions ref: pin per the version convention in `crossplane/README.md`.
+  Read the pinned base's `kustomization.yaml`; it must select only the XRD and
+  Composition, not Functions, example XRs, render scripts, or RBAC.
 - Function package: a published image and explicit version, never `latest`.
-- Architecture and prerequisites: package architecture, Crossplane version,
-  required providers or controllers, and the XR namespace.
+- Resolved evidence: the definitions ref's commit and the package digest where
+  available. Tags are immutable by convention, not guaranteed; release metadata
+  alone does not prove OCI publication or architecture.
+- Required inputs: package architecture, Crossplane version, required providers
+  or controllers, and function-specific configuration such as an
+  EnvironmentConfig, issuer, or gateway only when the actual function requires
+  it.
 - Compatibility: package and definitions releases may differ. Read the pinned
   XRD/Composition and the package release notes to confirm the fields and
-  behavior the Composition expects.
-
-Verify the pinned base is definitions-only: its `kustomization.yaml` selects
-the XRD and Composition, not Functions, example XRs, render scripts, or RBAC.
-Confirm the tag resolves to the intended commit and the package version is
-published.
+  behavior the Composition expects; record it as verified or unverified.
 
 If the package, pin, or definitions-only base is missing, stop and report the
 exact missing artifact. Do not invent a pin, import individual upstream files
-from `main` as legacy `01-tls-ingress` does, or begin upstream authoring.
+from `main` as legacy `01-tls-ingress` does, or begin upstream authoring. If
+publication, architecture, or compatibility cannot be verified, report it as
+unverified.
 
-**Done:** contract recorded with exact immutable refs and verified contents, or
-a precise blocker report.
+**Done:** contract recorded with exact refs, resolved evidence, required inputs,
+and compatibility status, or a precise blocker report. Missing artifacts block
+wiring; any unverified publication, architecture, or compatibility blocks
+rollout.
 
 ## 2. Check identities and contracts
 
 - XRD identity is `<plural>.<group>`; kind, plural, group, and served version
-  must match the Composition and XR.
-- Composition names are unique cluster-wide. Preserve existing names; new
-  projects use `<project-id>.<group>`.
-- XR schema and required fields come from the pinned XRD, including health
-  enums the function emits.
-- Crossplane v2 XR uses `spec.crossplane.compositionRef` to select the
-  Composition explicitly. XRs and composed resources are namespaced; XRDs,
-  Compositions, Functions, and aggregate ClusterRoles are cluster-scoped.
-- Names collide across kinds in one namespace: XR name, composed resource
-  names, hostnames, and Secrets. A new kind does not isolate them.
+  must match the pinned Composition and XR.
+- Take the Composition name from the pinned upstream artifact. Verify it is
+  unique cluster-wide and selected by the XR; a conflict blocks the work. Do
+  not rename an upstream Composition here.
+- XR schema, required fields, health enums, and scope come from the pinned XRD.
+  In the Crossplane v2 contract, select the Composition with
+  `spec.crossplane.compositionRef`.
+- Use the actual scope: do not assume XRs or composed resources are namespaced.
+  XRDs, Compositions, Functions, and aggregate ClusterRoles are cluster-scoped.
+- Check collisions by the actual names the XR and function produce. Same-kind
+  namespace/name collisions cover XRs and composed resources; functions may
+  also derive shared names across kinds, such as composed resources named after
+  the XR. Check hostnames and Secrets separately. A new kind does not isolate
+  them.
 - List the composed kinds the pinned Composition and function documentation
   actually render; a pipeline-only Composition can hide them inside the
   function. Do not assume every function composes Ingress or Certificate
@@ -63,12 +76,13 @@ a precise blocker report.
   external resources. Some functions implement no readiness detector. Do not
   add auto-ready unless the contract needs it.
 
-**Done:** every identity, selected Composition, required field, collision,
+**Done:** every identity, selected Composition, required field, scope, collision,
 composed kind, and readiness condition is traced to the pinned artifacts.
 
-## 3. Wire the 02 pattern
+## 3. Wire a custom project
 
-Create `crossplane/<NN>-<project-id>/`:
+Create `crossplane/<NN>-<project-id>/` following the
+`crossplane/02-tls-ingress-custom/` example:
 
 - `application.yaml`: parent Application, no deletion finalizer, sync wave 10,
   source path the project directory, automated sync with pruning disabled.
@@ -94,24 +108,21 @@ Shared Functions:
 
 Registry and ownership:
 
-- Add only `<NN>-<project-id>/application.yaml` to
-  `crossplane/kustomization.yaml`; never project or workload directories, and
-  never `_shared/`.
-- Keep the single `infra` reference to the registry. The parent must not manage
-  itself, and the registry must not flatten workloads into Argo ownership.
+- Follow `crossplane/README.md` for registry and ownership rules. Add only
+  `<NN>-<project-id>/application.yaml` to `crossplane/kustomization.yaml`;
+  never project or workload directories, and never `_shared/`.
+- Keep the single `infra` reference to the registry; the parent must not manage
+  itself.
 - Leave `01-tls-ingress` and `02-tls-ingress-custom` byte-for-byte unchanged.
 
-**Done:** the project renders standalone and the registry adds exactly one
-Application reference.
+**Done:** every required path exists with the intended ownership, and the
+registry adds exactly one Application reference.
 
 ## 4. Validate locally
 
-Use the checks the repository supports:
+Run the standard renders in `crossplane/README.md`, then the new project's own:
 
 ```sh
-kubectl kustomize crossplane
-kubectl kustomize infra
-kubectl kustomize crossplane/_shared
 kubectl kustomize crossplane/<NN>-<project-id>
 kubectl kustomize crossplane/<NN>-<project-id>/compositions
 kubectl kustomize crossplane/<NN>-<project-id>/xr
@@ -125,10 +136,13 @@ Inspect:
   owners.
 - Project: the ApplicationSet only; the parent Application is not selected by
   the workload Kustomization.
-- Definitions: exact pinned ref in `compositions/kustomization.yaml`; XRD and
-  Composition kinds only; no upstream Functions, examples, or RBAC.
-- XR: kind, version, and namespace match the XRD; `compositionRef` names the
-  pinned Composition; required fields are present.
+- Upstream definitions: the pinned ref appears in
+  `compositions/kustomization.yaml`; the resolved base selects only the XRD and
+  Composition. The local compositions render contains those definitions plus
+  the intended local aggregate ClusterRole.
+- XR: kind, version, and scope match the pinned XRD; a namespaced XR uses the
+  intended namespace; `compositionRef` names the pinned Composition; required
+  fields are present.
 - Ownership: no duplicate Application names, Function declarations, or
   ClusterRoles.
 
@@ -151,8 +165,12 @@ Ordering is not readiness:
   composed resource readiness.
 - Sync `crossplane-shared` and verify the Function package is Installed and
   Healthy before syncing XRs. Confirm the XRD is Established and the
-  Composition is selected. Check function-specific prerequisites such as an
-  issuer, ingress, gateway, or backend service separately.
+  Composition is selected. Check only the prerequisites the function actually
+  requires, such as an issuer, ingress, gateway, backend service, or
+  EnvironmentConfig.
+- Rollout stays blocked until every required prerequisite and compatibility
+  claim is verified; preparatory wiring may continue, but do not report the
+  deployment as ready.
 - Verify Argo health coverage for the XR kind before treating Application
   Healthy as readiness. Provisioning readiness does not prove traffic, TLS, or
   network health; verify those separately.
@@ -173,9 +191,9 @@ Rollback and retirement:
   the Application nor its resources.
 - Retiring a project needs explicit non-cascading Application deletion and
   explicit resource cleanup, with approval.
-- Rollback restores the previous immutable Function and definitions pins. It
-  does not guarantee removal of resources created by the newer composition.
-  Do not test rollback on a cluster without approval.
+- Rollback restores the previous pinned Function and definitions. It does not
+  guarantee removal of resources created by the newer composition. Do not test
+  rollback on a cluster without approval.
 
 **Done:** rollout prerequisites, ownership boundaries, approval needs, and
 rollback limits are stated in the handoff.

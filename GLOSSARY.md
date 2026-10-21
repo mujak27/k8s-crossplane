@@ -6,22 +6,18 @@ managed as Argo CD Applications.
 ## Language
 
 **Project ID**:
-The stable name of a Crossplane compilation project, formed by dropping the
-numeric ordering prefix from its upstream directory. Application, RBAC, XR, and
-composed resource names derive from it.
+The stable identifier of a Crossplane compilation project.
 _Avoid_: project number, app name
 
-**Definitions base**:
-An upstream Kustomize base containing only a project's XRD and Composition, at
-an immutable release ref.
+**Definitions Base**:
+An upstream Kustomize base that supplies a project's XRD and Composition.
 _Avoid_: composition bundle, manifest folder
 
-**Function package**:
-A published Crossplane Function image installed through a shared `Function`
-declaration. Its release is independent of the definitions release.
+**Function Package**:
+A versioned OCI package that provides a Crossplane composition function.
 _Avoid_: function image, addon
 
 **Parent Application**:
-The Argo CD Application that selects a project's workload Kustomization and owns
-that project's ApplicationSet and generated Applications.
+The Argo CD Application for a project's own ApplicationSet and generated
+Applications.
 _Avoid_: root app, project app
