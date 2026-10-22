@@ -1,0 +1,24 @@
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: secure-egress-origin-tls
+  namespace: istio-egress
+spec:
+  host: origin.origin-headless.secure-egress-origin.svc.cluster.local
+  exportTo:
+    - "."
+  workloadSelector:
+    matchLabels:
+      app: istio-egress
+      istio: egress
+  trafficPolicy:
+    portLevelSettings:
+      - port:
+          number: 443
+        tls:
+          mode: SIMPLE
+          credentialName: secure-egress-origin-ca
+          sni: origin.origin-headless.secure-egress-origin.svc.cluster.local
+          subjectAltNames:
+            - origin.origin-headless.secure-egress-origin.svc.cluster.local
+          insecureSkipVerify: false

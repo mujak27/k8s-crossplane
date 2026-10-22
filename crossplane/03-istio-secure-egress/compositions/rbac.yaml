@@ -1,0 +1,10 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: crossplane:compose:istio-secure-egress
+  labels:
+    rbac.crossplane.io/aggregate-to-crossplane: "true"
+rules:
+  - apiGroups: [networking.istio.io]
+    resources: [serviceentries, gateways, destinationrules, virtualservices]
+    verbs: [get, list, watch, create, update, patch, delete]

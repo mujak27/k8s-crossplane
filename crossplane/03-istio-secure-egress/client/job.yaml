@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: secure-egress-client
+  namespace: secure-egress-demo
+spec:
+  # Declared and enabled, but no pod/traffic until the operator checks every gate.
+  suspend: true
+  backoffLimit: 0
+  activeDeadlineSeconds: 120
+  template:
+    metadata:
+      labels:
+        app: secure-egress-client
+      annotations:
+        sidecar.istio.io/inject: "true"
+        sidecar.istio.io/nativeSidecar: "true"
+        proxy.istio.io/config: '{"holdApplicationUntilProxyStarts":true}'
+    spec:
+      automountServiceAccountToken: false
+      restartPolicy: Never
+      containers:
+        - name: client
+          image: docker.io/curlimages/curl:8.12.1@sha256:94e9e444bcba979c2ea12e27ae39bee4cd10bc7041a472c4727a558e213744e6
+          args:
+            - --fail-with-body
+            - --show-error
+            - --silent
+            - --noproxy
+            - '*'
+            - --connect-timeout
+            - '10'
+            - --max-time
+            - '30'
+            - http://origin.origin-headless.secure-egress-origin.svc.cluster.local:80/

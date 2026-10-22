@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: origin-nginx
+data:
+  default.conf: |
+    server {
+      listen 443 ssl;
+      server_name origin.origin-headless.secure-egress-origin.svc.cluster.local;
+      ssl_certificate /etc/nginx/tls/tls.crt;
+      ssl_certificate_key /etc/nginx/tls/tls.key;
+      ssl_protocols TLSv1.2 TLSv1.3;
+      location / {
+        root /usr/share/nginx/html;
+        index index.html;
+      }
+    }
+  index.html: |
+    secure-egress origin reached
