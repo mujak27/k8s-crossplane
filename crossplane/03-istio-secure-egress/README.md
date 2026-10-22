@@ -30,9 +30,42 @@ guarantee. The future client sends plain HTTP; the unmeshed origin serves HTTPS.
   `crossplane/03-istio-secure-egress/origin`. This slice deliberately leaves that
   workload entrypoint unregistered until then. Do not put workloads into the
   Crossplane registry: it continues to contain Applications only.
-- #18 owns the separate gateway-namespace upstream DestinationRule and private
-  CA-only trust entrypoint. Neither trust nor XR/client resources are added here.
-  No pruning, deletion finalizers, or changes to existing ingress are introduced.
+- `upstream/` owns the independent gateway-namespace DestinationRule, not the XR.
+  #19 must register this workload entrypoint through the project ApplicationSet,
+  separately from the origin and before XR traffic. Do not add it to the registry.
+  The private repository owns `istio-egress/secure-egress-origin-ca`, an Opaque
+  Secret containing only `ca.crt`. No public trust Secret or namespace duplicate
+  is declared here. No pruning or deletion finalizers are introduced.
+
+## Upstream trust and manual rotation
+
+The gateway selects `app: istio-egress`, `istio: egress` and originates SIMPLE
+TLS on port 443, using `credentialName: secure-egress-origin-ca`. The SNI and
+exact DNS SAN match the origin identity above; verification is explicitly enabled
+and the rule is exported only to its namespace. This is distinct from the later
+client-to-gateway ISTIO_MUTUAL leg. It does not require client application TLS.
+
+The CA-only Secret and its GitOps Application live under the private repository's
+`infra/secure-egress-trust`; that repository records the freshly captured public
+root fingerprint and validity. The source is only the public `tls.crt` field of
+`cert-manager/selfsigned-root-ca`. Never export the full source Secret, its key,
+or the origin server key; never put PEM in this public repository.
+
+For CA rotation, obtain separate authorization for capture, deployment and any
+restart. Revalidate the new public CA's CA:TRUE, dates, self-signature and SHA-256
+fingerprint against the intended issuer. Review a private-only `ca.crt` bundle
+update and reconcile it before serving a leaf signed by the new root. A staged
+old/new public-root overlap is possible during manual rotation; remove the old
+root after all consumers move. Recheck each certificate in the bundle. Confirm
+gateway SDS adopted the bundle; do not assume Git sync proves adoption. Have
+cert-manager renew the origin leaf through its existing issuer workflow and
+explicitly restart nginx to reload it. Verify the exact SAN/SNI and successful
+gateway handshake before removing old trust. No rotation controller is added.
+
+Missing/untrusted CA, expired certificates or a SAN mismatch must fail upstream
+TLS (typically surfaced as a gateway 503), never fall back to plaintext or skip
+verification. SDS inspection, successful traffic and controlled negative tests
+remain separately authorized live checks; local renders prove none of them.
 
 ## Published pins (registry evidence, 2026-10-22)
 
@@ -62,6 +95,7 @@ From the repository root (Ruby standard library, kubectl, Helm and curl only):
 
 ```sh
 ruby crossplane/03-istio-secure-egress/validate-platform.rb
+ruby crossplane/03-istio-secure-egress/validate-trust.rb
 git diff --check
 ```
 
