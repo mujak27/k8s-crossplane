@@ -13,6 +13,7 @@ infra/kustomization.yaml
      _shared/                 # Application + shared Function packages
      01-tls-ingress/           # Application + ApplicationSet + original XR
      02-tls-ingress-custom/    # Application + ApplicationSet + definitions + XR
+     03-istio-secure-egress/   # definitions/profile/RBAC + XR + gated HTTP client
 ```
 
 ## Enabling projects
@@ -70,6 +71,9 @@ kubectl kustomize infra
 kubectl kustomize crossplane/_shared
 kubectl kustomize crossplane/02-tls-ingress-custom/compositions
 kubectl kustomize crossplane/02-tls-ingress-custom/xr
+ruby crossplane/03-istio-secure-egress/validate-platform.rb
+ruby crossplane/03-istio-secure-egress/validate-trust.rb
+ruby crossplane/03-istio-secure-egress/validate.rb --render
 ```
 
 Registry inclusion and parent sync waves order app creation, not Crossplane or
@@ -110,3 +114,12 @@ was not exercised. No emulation setup or runtime modification was performed.
 This establishes exact-package startup/health on this target only; it does not
 establish portable ARM64 support, required-resources execution, or XR
 reconciliation. Recheck health and the remaining gates before dependent rollout.
+
+The secure-egress project's local validators also passed on 2026-10-22, including
+actual released-package output with the local CLI v2.5.0 and explicitly selected
+Crossplane v2.4.2 Docker render engine. This confirms the local four-resource
+output contract with supplied EnvironmentConfig, not target-cluster
+required-resources execution or full XR reconciliation. The enabled XR and
+suspended HTTP client have separate ownership; only an authorized operator may
+resume the client after the [project rollout gates](03-istio-secure-egress/README.md).
+Live TLS, negative SAN/CA cases and gateway-traversal acceptance remain unproven.

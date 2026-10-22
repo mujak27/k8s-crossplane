@@ -1,0 +1,12 @@
+apiVersion: apiextensions.crossplane.io/v1beta1
+kind: EnvironmentConfig
+metadata:
+  name: istio-egress-secure-egress
+data:
+  gateway:
+    namespace: istio-egress
+    serviceFQDN: istio-egress.istio-egress.svc.cluster.local
+    selector:
+      app: istio-egress
+      istio: egress
+    port: 443

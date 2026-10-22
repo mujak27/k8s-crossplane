@@ -30,10 +30,10 @@ namespaces = infra.select { |d| d['kind'] == 'Namespace' }
 end
 origin_ns = namespaces.find { |d| d.dig('metadata', 'name') == 'secure-egress-origin' }
 check(origin_ns.dig('metadata', 'labels', 'istio-injection') == 'disabled', 'origin must be unmeshed')
-%w[istio-egress secure-egress-demo].each do |name|
-  ns = namespaces.find { |d| d.dig('metadata', 'name') == name }
-  check((ns.dig('metadata', 'labels') || {}).empty?, "unexpected namespace injection configuration: #{name}")
-end
+gateway_ns = namespaces.find { |d| d.dig('metadata', 'name') == 'istio-egress' }
+check((gateway_ns.dig('metadata', 'labels') || {}).empty?, 'gateway namespace injection eligibility')
+demo_ns = namespaces.find { |d| d.dig('metadata', 'name') == 'secure-egress-demo' }
+check(demo_ns.dig('metadata', 'labels') == { 'istio-injection' => 'enabled' }, 'demo sidecar injection')
 
 app = YAML.load_file('infra/istio-egress/application.yaml')
 check(infra.count { |d| d['kind'] == 'Application' && d.dig('metadata', 'name') == 'istio-egress' } == 1, 'gateway Application ownership')

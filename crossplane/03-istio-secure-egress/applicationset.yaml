@@ -1,0 +1,75 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: istio-secure-egress
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions:
+    - missingkey=error
+  generators:
+    - list:
+        elements:
+          - stage: origin
+            namespace: secure-egress-origin
+            path: crossplane/03-istio-secure-egress/origin
+          - stage: upstream
+            namespace: istio-egress
+            path: crossplane/03-istio-secure-egress/upstream
+          - stage: compositions
+            namespace: crossplane-system
+            path: crossplane/03-istio-secure-egress/compositions
+          - stage: xr
+            namespace: secure-egress-demo
+            path: crossplane/03-istio-secure-egress/xr
+          - stage: client
+            namespace: secure-egress-demo
+            path: crossplane/03-istio-secure-egress/client
+  strategy:
+    type: RollingSync
+    rollingSync:
+      steps:
+        - matchExpressions:
+            - key: k8s-crossplane/stage
+              operator: In
+              values: [origin, upstream, compositions]
+          maxUpdate: 3
+        - matchExpressions:
+            - key: k8s-crossplane/stage
+              operator: In
+              values: [xr]
+          maxUpdate: 1
+        - matchExpressions:
+            - key: k8s-crossplane/stage
+              operator: In
+              values: [client]
+          maxUpdate: 1
+  syncPolicy:
+    preserveResourcesOnDeletion: true
+  template:
+    metadata:
+      name: 'istio-secure-egress-{{.stage}}'
+      labels:
+        k8s-crossplane/dependency-group: istio-secure-egress
+        k8s-crossplane/stage: '{{.stage}}'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/mujak27/k8s-crossplane
+        targetRevision: main
+        path: '{{.path}}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{.namespace}}'
+      # Only an explicitly authorized operator opens the first-traffic gate.
+      ignoreDifferences:
+        - group: batch
+          kind: Job
+          name: secure-egress-client
+          namespace: secure-egress-demo
+          jsonPointers: [/spec/suspend]
+      # RollingSync triggers syncs; generated apps must not auto-sync or prune.
+      syncPolicy:
+        syncOptions:
+          - ServerSideApply=true
+          - RespectIgnoreDifferences=true

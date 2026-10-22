@@ -21,4 +21,5 @@ metadata:
   name: secure-egress-demo
   annotations:
     argocd.argoproj.io/sync-wave: "-40"
-  # The enabling ticket adds sidecar injection here; do not redeclare this namespace.
+  labels:
+    istio-injection: enabled
