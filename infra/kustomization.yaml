@@ -5,6 +5,8 @@ resources:
   - istio-base
   - istiod
   - istio-ingress
+  - istio-egress
+  - secure-egress-namespaces
   - cert-manager
   - ../crossplane
   - nginx-ingress

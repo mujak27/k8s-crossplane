@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: istio-egress
+  annotations:
+    argocd.argoproj.io/sync-wave: "-40"
+  # Do not disable injection: the gateway chart requires istiod's webhook.
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: secure-egress-origin
+  annotations:
+    argocd.argoproj.io/sync-wave: "-40"
+  labels:
+    istio-injection: disabled
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: secure-egress-demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "-40"
+  # The enabling ticket adds sidecar injection here; do not redeclare this namespace.

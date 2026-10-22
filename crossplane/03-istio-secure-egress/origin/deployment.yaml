@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: origin
+spec:
+  replicas: 1
+  # Avoid overlapping pods advertising the same headless DNS name during updates.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: secure-egress-origin
+  template:
+    metadata:
+      labels:
+        app: secure-egress-origin
+    spec:
+      hostname: origin
+      subdomain: origin-headless
+      automountServiceAccountToken: false
+      containers:
+        - name: nginx
+          image: docker.io/library/nginx:1.28.3-alpine@sha256:a8b39bd9cf0f83869a2162827a0caf6137ddf759d50a171451b335cecc87d236
+          ports:
+            - name: https
+              containerPort: 443
+          readinessProbe:
+            tcpSocket:
+              port: https
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 64Mi
+          volumeMounts:
+            - name: config
+              mountPath: /etc/nginx/conf.d
+              readOnly: true
+            - name: content
+              mountPath: /usr/share/nginx/html
+              readOnly: true
+            - name: tls
+              mountPath: /etc/nginx/tls
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: origin-nginx
+            items:
+              - key: default.conf
+                path: default.conf
+        - name: content
+          configMap:
+            name: origin-nginx
+            items:
+              - key: index.html
+                path: index.html
+        - name: tls
+          secret:
+            secretName: origin-tls
