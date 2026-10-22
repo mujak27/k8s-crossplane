@@ -20,23 +20,6 @@ spec:
             repoURL: https://github.com/mujak27/k8s-crossplane
             path: crossplane/01-tls-ingress/xr
             include: xr.yaml
-  # This set owns just the TLS dependency group. Other groups get their own set.
-  strategy:
-    type: RollingSync
-    rollingSync:
-      steps:
-        - matchExpressions:
-            - key: k8s-crossplane/stage
-              operator: In
-              values:
-                - compositions
-          maxUpdate: 1
-        - matchExpressions:
-            - key: k8s-crossplane/stage
-              operator: In
-              values:
-                - xr
-          maxUpdate: 1
   syncPolicy:
     preserveResourcesOnDeletion: true
   template:
@@ -57,7 +40,16 @@ spec:
       destination:
         server: https://kubernetes.default.svc
         namespace: '{{.namespace}}'
-      # RollingSync triggers syncs itself; generated apps must not auto-sync.
+      # AllAtOnce permits child auto-sync; retry prerequisite admission failures.
       syncPolicy:
+        automated:
+          prune: false
+          selfHeal: true
+        retry:
+          limit: -1
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
         syncOptions:
           - ServerSideApply=true

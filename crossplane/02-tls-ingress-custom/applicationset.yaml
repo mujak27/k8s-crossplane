@@ -16,22 +16,6 @@ spec:
           - stage: xr
             namespace: default
             path: crossplane/02-tls-ingress-custom/xr
-  strategy:
-    type: RollingSync
-    rollingSync:
-      steps:
-        - matchExpressions:
-            - key: k8s-crossplane/stage
-              operator: In
-              values:
-                - compositions
-          maxUpdate: 1
-        - matchExpressions:
-            - key: k8s-crossplane/stage
-              operator: In
-              values:
-                - xr
-          maxUpdate: 1
   syncPolicy:
     preserveResourcesOnDeletion: true
   template:
@@ -49,7 +33,16 @@ spec:
       destination:
         server: https://kubernetes.default.svc
         namespace: '{{.namespace}}'
-      # RollingSync triggers syncs itself; generated apps must not auto-sync.
+      # AllAtOnce permits child auto-sync; retry prerequisite admission failures.
       syncPolicy:
+        automated:
+          prune: false
+          selfHeal: true
+        retry:
+          limit: -1
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
         syncOptions:
           - ServerSideApply=true

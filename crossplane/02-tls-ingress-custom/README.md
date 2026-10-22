@@ -3,12 +3,12 @@
 This is additive: the original `XIngressTLS` and `app.mujak.com` remain unchanged.
 The root includes `crossplane/kustomization.yaml` via `infra`, enabling the parent
 `crossplane/02-tls-ingress-custom/application.yaml`. It installs a separate
-ApplicationSet with the existing compositions-to-XR RollingSync pattern:
+ApplicationSet with independently automated children (default AllAtOnce):
 
 ```text
 crossplane-shared: function-tls-ingress v0.1.2
 tls-ingress-custom-compositions: XRD + Composition + aggregate RBAC
-  -> tls-ingress-custom-xr: default/nginx-custom
+tls-ingress-custom-xr: default/nginx-custom
 ```
 
 Both generated Applications read this repository's `main` and use Kustomize.
@@ -37,12 +37,13 @@ cluster-scoped; the XR and composed resources are namespaced.
 - Merge before deployment: all Applications track `main`.
 - Ensure Crossplane, cert-manager and the NGINX ingress controller are ready.
 - Sync `crossplane-shared` and verify `function-tls-ingress` is Installed and Healthy
-  before syncing the custom group. Parent sync waves only order app creation;
+  before relying on the custom group. Parent sync waves only order app creation;
   they do not gate Function readiness.
-- Enable Progressive Syncs via `bootstrap/argocd`, as described in
-  `../01-tls-ingress/README.md`. RollingSync waits for compositions app health
-  before syncing XRs; verify Argo health coverage and XRD establishment, rather
-  than assuming Application Healthy proves all dependencies ready.
+- Children auto-sync and self-heal without pruning; RollingSync was removed
+  because it disables auto-sync. Failed syncs retry indefinitely from 5s with
+  exponential backoff capped at 3m. XRs may race XRD/webhook readiness: observe
+  admission failures and recover unhealthy dependencies. Retry and Application
+  Healthy are not readiness guarantees; verify XRD establishment and runtime health.
 - Provide the existing `default/app` Service on port **80** and ready
   `selfsigned-ca` ClusterIssuer from the private GitOps repository.
 - Point `app-custom.mujak.com` at the NGINX ingress endpoint. Clients must trust

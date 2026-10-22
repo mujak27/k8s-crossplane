@@ -20,7 +20,7 @@ infra/kustomization.yaml
 
 Add `application.yaml` to the project's directory and reference that file
 directly in `crossplane/kustomization.yaml`. Give the project its own directory and
-ApplicationSet, with compositions-to-XR RollingSync when needed. Preserve
+ApplicationSet, with automated child sync and the default AllAtOnce strategy. Preserve
 separate ownership of shared Functions in `_shared/`.
 
 The registry renders **Applications only**, not every project's resources.
@@ -66,6 +66,7 @@ the custom example uses this form at `tls-ingress-custom-v0.1.0`.
 ## Validation and rollout
 
 ```sh
+ruby validate-sync.rb /path/to/k8s-crossplane-private
 kubectl kustomize crossplane
 kubectl kustomize infra
 kubectl kustomize crossplane/_shared
@@ -77,9 +78,15 @@ ruby crossplane/03-istio-secure-egress/validate.rb --render
 ```
 
 Registry inclusion and parent sync waves order app creation, not Crossplane or
-Function readiness. Follow each project's rollout prerequisites before syncing
-its XRs. Directory consolidation improves locality; it does not change runtime
-dependency guarantees.
+Function readiness. All declared Applications now auto-sync without pruning;
+RollingSync was removed because it forcibly disables child auto-sync. Newly
+automated apps retry failed syncs indefinitely with 5s exponential backoff capped
+at 3m, following the private selfsigned policy. Independent reconciliation can
+race CRDs, webhooks, namespaces and Functions. Retry is not a readiness guarantee:
+admission failures and unhealthy dependencies require observation and recovery.
+Follow each project's runtime/TLS/security gates; the secure-egress client stays
+suspended until an explicitly authorized operator resumes it. Automation policy
+does not authorize agents to run live sync, resume or other mutation commands.
 
 ### Secure-egress Function runtime gate
 

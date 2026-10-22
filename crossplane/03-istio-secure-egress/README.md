@@ -11,7 +11,7 @@ origin 443**. The unmeshed nginx origin, not the client application, serves HTTP
   `secure-egress-origin`, and `secure-egress-demo`. Demo sidecar injection is
   enabled there, not through a duplicate namespace in this project.
   Origin injection is disabled; gateway object injection remains eligible.
-- `infra/istio-egress` declares the manual-sync gateway Helm Application.
+- `infra/istio-egress` declares the automated-sync gateway Helm Application.
   Service: **istio-egress.istio-egress.svc.cluster.local**. Exact Service and
   Deployment selector: **`app: istio-egress`, `istio: egress`**. Exposed ports are
   **443 → 443** (ISTIO_MUTUAL listener) and **15021 → 15021** (health), TCP.
@@ -30,9 +30,9 @@ origin 443**. The unmeshed nginx origin, not the client application, serves HTTP
   certificates: an explicitly authorized origin restart is required after rotation.
 - The registry contains only the parent `istio-secure-egress` Application. Its
   workload Kustomization owns only the ApplicationSet, which generates separate
-  `origin`, `upstream`, `compositions`, `xr` and `client` Applications. RollingSync
-  orders origin/upstream/compositions before XR, then client. It orders Argo
-  health, **not** all operational prerequisites. No prune/finalizers or namespace
+  `origin`, `upstream`, `compositions`, `xr` and `client` Applications. All children
+  auto-sync and self-heal independently with default AllAtOnce; RollingSync was
+  removed because it disables child auto-sync. No prune/finalizers or namespace
   creation options are added; shared Functions remain solely in `_shared`.
 - `upstream/` owns the independent gateway-namespace DestinationRule, not the XR.
   Its ApplicationSet child is separate from origin and composed resources.
@@ -171,22 +171,27 @@ The following is a runbook, **not permission to execute it**. Push/merge, Argo
 syncs, resume, test mutations, restarts and cleanup each require authorization.
 Use context `orbstack` only after reconfirming its API server and intended target.
 Keep the Job suspended throughout preparation. Argo waves order Application
-creation, not runtime readiness; RollingSync is not an automatic security gate.
+creation, not runtime readiness. Newly automated gateway, trust and child apps
+retry failed syncs indefinitely with exponential backoff from 5s capped at 3m.
+They may race namespaces, XRDs, webhooks and Functions; retry is not readiness or
+security acceptance. Observe admission failures and recover prerequisites rather
+than assuming automated reconciliation succeeded. This policy does not authorize
+live commands or client resume; all TLS/security gates below still apply.
 
-1. Before syncing dependent XRs, recheck the exact shared package digest and
+1. Before relying on dependent XRs, recheck the exact shared package digest and
    Function Installed/Healthy plus active revision/runtime health. Existing
    startup success used a cached image; fresh registry pull/auth remains untested.
    Fail closed on runtime errors. Do not rebuild, substitute a package, configure
    emulation or upgrade Crossplane. Confirm Istio 1.31.1 CRDs, istiod/webhook and
    cert-manager/`ClusterIssuer/selfsigned-ca` readiness.
 2. With deployment authorization, sync the infra namespace declarations (demo
-   injection enabled, origin disabled, gateway injection not disabled), manually
-   sync the `istio-egress` Helm Application and the private `secure-egress-trust`
-   Application. Register/sync the public parent. Its origin/upstream/compositions
-   children precede XR; the XR is enabled, not a commented example. Verify
-   ApplicationSet progressive sync is enabled and the generated Applications
-   have the intended paths, no automated pruning and no cascading finalizers.
-   Stop on unhealthy dependencies; do not force XR sync past a failed gate.
+   injection enabled, origin disabled, gateway injection not disabled). Observe
+   automated reconciliation of `istio-egress`, private `secure-egress-trust` and
+   the public parent/children. There is no child readiness ordering; the XR is
+   enabled, not a commented example. Verify generated Applications have the
+   intended paths, automated sync, no pruning and no cascading finalizers.
+   Stop rollout acceptance on unhealthy dependencies; recover failed admission
+   and keep the client suspended rather than bypassing a gate.
 3. Check XRD/CRD establishment, actual profile contents and effective controller
    RBAC (four native kinds plus existing EnvironmentConfig get/list/watch).
    Reinspect controller RoleBinding/ClusterRoleBinding aggregation and Function

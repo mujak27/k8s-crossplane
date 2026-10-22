@@ -38,8 +38,17 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: istio-egress
-  # Manual sync after istiod is ready. Namespace ownership is in infra only.
+  # Retry prerequisite failures. Namespace ownership is in infra only.
   # Gateway listeners and routes are supplied separately by the demo XR.
   syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    retry:
+      limit: -1
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
     syncOptions:
       - ServerSideApply=true

@@ -7,6 +7,9 @@ the TLS dependency group, generating two Applications:
 
 Both generated Applications read `main`, but use separate repositories:
 
+Auto-sync follows changes on those branches, including external upstream `main`
+for definitions. That source is intentionally unchanged, not an immutable pin.
+
 1. `tls-ingress-compositions`: repository
    [`mujak27/crossplane-compilations`](https://github.com/mujak27/crossplane-compilations),
    path `01-tls-ingress`, selecting only `xrd.yaml`, `composition.yaml`,
@@ -38,49 +41,46 @@ registered in `crossplane/_shared/application.yaml` and sourced from
 The TLS compositions Application no longer selects the external `functions.yaml`.
 The shared app has sync wave 0, between Crossplane (-10) and the TLS parent (10).
 These waves order Application creation, not package readiness; ensure both shared
-Functions are installed and Healthy before syncing TLS compositions or XRs.
+Functions are installed and Healthy before relying on TLS compositions or XRs.
 When migrating an existing installation, update the TLS compositions app's source
 selection without pruning, then sync `crossplane-shared` to take ownership of the
 existing Functions. Do not prune the Functions from the old app.
 
-Apply `bootstrap/argocd` before syncing the parent. Its ConfigMap patch enables
-ApplicationSet Progressive Syncs (beta in the pinned Argo CD version). On an
-existing installation, restart `argocd-applicationset-controller` after applying
-the config so it reloads the environment setting.
-
-RollingSync selects generated Applications using `k8s-crossplane/stage`:
-sync compositions first, wait for that app to become Healthy, then sync XRs.
-It handles initial and later OutOfSync rollouts; individual child auto-sync is
-intentionally absent. No Application-level Lua health customization is needed.
-These labels are our own selectors, not Crossplane features.
+Both children auto-sync and self-heal without pruning using default AllAtOnce.
+RollingSync was removed because it disables child auto-sync; the existing
+Progressive Syncs bootstrap setting is no longer needed by this group and is
+left unchanged. Stage labels document membership, not dependency ordering.
+Failed syncs retry indefinitely with exponential backoff from 5s capped at 3m.
+Independent reconciliation can race XRD establishment or admission readiness;
+retry does not prove readiness and persistent failures need operator recovery.
 
 Application health still depends on Argo's health checks for the resources it
 contains. Verify coverage for the actual XRDs, providers, functions, and XR types
 before treating Healthy as proof of readiness. Ensure Crossplane and its required
-packages are ready before adding XRs. Manual child syncs bypass this ordering.
+packages are ready before relying on XRs. Live commands still need explicit
+authorization; automation does not replace runtime and TLS checks.
 
 ## Independent dependency groups
 
 For a database or storage group, create a separate directory and ApplicationSet
 with its own name, generated app names, and source paths. Register a corresponding
 parent `application.yaml` in that project's directory, enabled through
-`crossplane/kustomization.yaml`. Each set runs its own compositions-to-XR steps:
+`crossplane/kustomization.yaml`. Each set reconciles its own children independently:
 
 ```text
-TLS ApplicationSet:      TLS compositions      -> TLS XRs
-Database ApplicationSet: database compositions -> database XRs
+TLS ApplicationSet:      TLS compositions + TLS XRs
+Database ApplicationSet: database compositions + database XRs
 ```
 
-Do not combine unrelated compositions in this set's first step: one unhealthy
-Application blocks subsequent steps in the same set. The dependency-group label
+Do not combine unrelated compositions in this set. The dependency-group label
 documents membership; isolation comes from separate ApplicationSets. There is
 no automatic discovery of XR-to-XRD dependencies.
 
 ## Migration from the two standalone Applications
 
 The generated Application names are unchanged. If the old Applications already
-exist, verify the ApplicationSet has adopted them and removed their automated
-sync policies before relying on RollingSync. Pruning is disabled, so an existing
+exist, verify the ApplicationSet has adopted them with automated sync and no
+RollingSync strategy. Pruning is disabled, so an existing
 `resource.customizations.health.argoproj.io_Application` key may remain in
 `argocd-cm`; remove that obsolete key explicitly after migration.
 
