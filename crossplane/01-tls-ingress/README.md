@@ -7,6 +7,9 @@ the TLS dependency group, generating two Applications:
 
 Both generated Applications read `main`, but use separate repositories:
 
+RollingSync follows changes on those branches, including external upstream `main`
+for definitions. That source is intentionally unchanged, not an immutable pin.
+
 1. `tls-ingress-compositions`: repository
    [`mujak27/crossplane-compilations`](https://github.com/mujak27/crossplane-compilations),
    path `01-tls-ingress`, selecting only `xrd.yaml`, `composition.yaml`,
@@ -38,7 +41,7 @@ registered in `crossplane/_shared/application.yaml` and sourced from
 The TLS compositions Application no longer selects the external `functions.yaml`.
 The shared app has sync wave 0, between Crossplane (-10) and the TLS parent (10).
 These waves order Application creation, not package readiness; ensure both shared
-Functions are installed and Healthy before syncing TLS compositions or XRs.
+Functions are installed and Healthy before relying on TLS compositions or XRs.
 When migrating an existing installation, update the TLS compositions app's source
 selection without pruning, then sync `crossplane-shared` to take ownership of the
 existing Functions. Do not prune the Functions from the old app.
@@ -49,15 +52,18 @@ existing installation, restart `argocd-applicationset-controller` after applying
 the config so it reloads the environment setting.
 
 RollingSync selects generated Applications using `k8s-crossplane/stage`:
-sync compositions first, wait for that app to become Healthy, then sync XRs.
-It handles initial and later OutOfSync rollouts; individual child auto-sync is
-intentionally absent. No Application-level Lua health customization is needed.
+the controller automatically syncs compositions first, waits for that app to
+become Healthy, then syncs XRs. It handles initial and later OutOfSync rollouts;
+individual child auto-sync is intentionally absent, not a requirement for human
+sync. No Application-level Lua health customization is needed.
 These labels are our own selectors, not Crossplane features.
 
 Application health still depends on Argo's health checks for the resources it
 contains. Verify coverage for the actual XRDs, providers, functions, and XR types
 before treating Healthy as proof of readiness. Ensure Crossplane and its required
-packages are ready before adding XRs. Manual child syncs bypass this ordering.
+packages are ready before relying on XRs. Manual child syncs bypass this ordering.
+Live commands still need explicit authorization; automation does not replace
+runtime and TLS checks.
 
 ## Independent dependency groups
 

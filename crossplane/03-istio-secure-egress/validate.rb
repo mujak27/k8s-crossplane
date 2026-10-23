@@ -92,10 +92,19 @@ shared = render('crossplane/_shared')
 function = shared.select { |d| d.dig('metadata', 'name') == 'function-istio-secure-egress' }
 check(function.size == 1 && function[0].dig('spec', 'package') == 'ghcr.io/mujak27/function-istio-secure-egress:v0.1.0' && !function[0].dig('metadata', 'annotations'), 'single shared released Function without runtime annotations')
 %w[crossplane/01-tls-ingress crossplane/02-tls-ingress-custom crossplane/_shared crossplane/_controller infra/istio-ingress].each do |path|
-  check(run('git', 'diff', '3d91b52', '--', path).empty?, "existing project changed: #{path}")
+  run('git', 'diff', '--name-only', '3d91b52', '--', path).lines.map(&:strip).each do |file|
+    next if file == "#{path}/README.md"
+    check(file == 'infra/istio-ingress/application.yaml', "existing resource changed: #{file}")
+    before = YAML.load(run('git', 'show', "3d91b52:#{file}"))
+    after = YAML.load_file(file)
+    spec = after['spec']
+    spec['syncPolicy'].delete('automated')
+    spec['syncPolicy'].delete('retry')
+    check(after == before, "non-policy declaration changed: #{file}")
+  end
   Dir.glob("#{path}/**/kustomization.yaml").each { |file| render(File.dirname(file)) }
 end
-puts 'PASS: rendered ownership, release definitions, namespaced XR/profile, native RBAC, manual traffic gate, HTTP client pin, unchanged existing projects'
+puts 'PASS: rendered ownership, release definitions, namespaced XR/profile, native RBAC, manual traffic gate, HTTP client pin, existing resources unchanged except sync policy'
 
 if ARGV.include?('--render')
   Dir.mktmpdir('secure-egress-render-', ENV.fetch('TMPDIR')) do |dir|

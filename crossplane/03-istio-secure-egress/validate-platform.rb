@@ -37,7 +37,7 @@ check(demo_ns.dig('metadata', 'labels') == { 'istio-injection' => 'enabled' }, '
 
 app = YAML.load_file('infra/istio-egress/application.yaml')
 check(infra.count { |d| d['kind'] == 'Application' && d.dig('metadata', 'name') == 'istio-egress' } == 1, 'gateway Application ownership')
-check(!app.dig('spec', 'syncPolicy').key?('automated'), 'gateway must sync manually')
+check(app.dig('spec', 'syncPolicy', 'automated') == { 'prune' => false, 'selfHeal' => true }, 'automated gateway without pruning')
 check(!app.dig('metadata', 'finalizers'), 'no cascading deletion')
 source = app.dig('spec', 'source')
 check(source['targetRevision'] == '1.31.1' && source['chart'] == 'gateway', 'gateway chart pin')
@@ -64,7 +64,10 @@ Dir.mktmpdir('secure-egress-', ENV.fetch('TMPDIR')) do |dir|
   check(annotations['sidecar.istio.io/proxyImage'] == 'docker.io/istio/proxyv2:1.31.1@sha256:d86cba0dd1eb15c00b6901c69ce5ae3d2d5f8427a47751098cf8c3ab2a4a62e9', 'gateway image digest')
   ingress_path = 'infra/istio-ingress/application.yaml'
   before = run('git', 'show', "d05bc6b:#{ingress_path}")
-  check(before == File.read(ingress_path), 'existing ingress declaration changed')
+  normalized = YAML.load_file(ingress_path)
+  normalized['spec']['syncPolicy'].delete('automated')
+  normalized['spec']['syncPolicy'].delete('retry')
+  check(YAML.load(before) == normalized, 'existing ingress non-policy declaration changed')
   check(template.call(YAML.load(before)) == template.call(YAML.load_file(ingress_path)), 'existing ingress render changed')
 end
 

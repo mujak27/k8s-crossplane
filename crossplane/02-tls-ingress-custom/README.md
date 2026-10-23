@@ -37,12 +37,13 @@ cluster-scoped; the XR and composed resources are namespaced.
 - Merge before deployment: all Applications track `main`.
 - Ensure Crossplane, cert-manager and the NGINX ingress controller are ready.
 - Sync `crossplane-shared` and verify `function-tls-ingress` is Installed and Healthy
-  before syncing the custom group. Parent sync waves only order app creation;
+  before relying on the custom group. Parent sync waves only order app creation;
   they do not gate Function readiness.
 - Enable Progressive Syncs via `bootstrap/argocd`, as described in
-  `../01-tls-ingress/README.md`. RollingSync waits for compositions app health
-  before syncing XRs; verify Argo health coverage and XRD establishment, rather
-  than assuming Application Healthy proves all dependencies ready.
+  `../01-tls-ingress/README.md`. RollingSync automatically syncs compositions,
+  waits for app health, then syncs XRs. Child `syncPolicy.automated` is intentionally
+  absent; no human sync is required. Verify Argo health coverage and XRD
+  establishment, rather than assuming Application Healthy proves all dependencies ready.
 - Provide the existing `default/app` Service on port **80** and ready
   `selfsigned-ca` ClusterIssuer from the private GitOps repository.
 - Point `app-custom.mujak.com` at the NGINX ingress endpoint. Clients must trust

@@ -18,9 +18,17 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: istio-system
-  # Initial rollout is manual: establish CRDs before syncing istiod.
-  # Parent Application waves do not gate child installation readiness.
+  # Parent waves do not gate prerequisite readiness; retry failed admission.
   syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    retry:
+      limit: -1
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true
