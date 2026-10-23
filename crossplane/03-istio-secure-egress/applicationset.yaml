@@ -25,6 +25,25 @@ spec:
           - stage: client
             namespace: secure-egress-demo
             path: crossplane/03-istio-secure-egress/client
+  strategy:
+    type: RollingSync
+    rollingSync:
+      steps:
+        - matchExpressions:
+            - key: k8s-crossplane/stage
+              operator: In
+              values: [origin, upstream, compositions]
+          maxUpdate: 3
+        - matchExpressions:
+            - key: k8s-crossplane/stage
+              operator: In
+              values: [xr]
+          maxUpdate: 1
+        - matchExpressions:
+            - key: k8s-crossplane/stage
+              operator: In
+              values: [client]
+          maxUpdate: 1
   syncPolicy:
     preserveResourcesOnDeletion: true
   template:
@@ -49,17 +68,8 @@ spec:
           name: secure-egress-client
           namespace: secure-egress-demo
           jsonPointers: [/spec/suspend]
-      # AllAtOnce permits child auto-sync; retry prerequisite admission failures.
+      # RollingSync triggers syncs; generated apps must not auto-sync or prune.
       syncPolicy:
-        automated:
-          prune: false
-          selfHeal: true
-        retry:
-          limit: -1
-          backoff:
-            duration: 5s
-            factor: 2
-            maxDuration: 3m
         syncOptions:
           - ServerSideApply=true
           - RespectIgnoreDifferences=true

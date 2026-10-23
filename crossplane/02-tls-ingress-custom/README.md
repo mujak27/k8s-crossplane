@@ -3,12 +3,12 @@
 This is additive: the original `XIngressTLS` and `app.mujak.com` remain unchanged.
 The root includes `crossplane/kustomization.yaml` via `infra`, enabling the parent
 `crossplane/02-tls-ingress-custom/application.yaml`. It installs a separate
-ApplicationSet with independently automated children (default AllAtOnce):
+ApplicationSet with the existing compositions-to-XR RollingSync pattern:
 
 ```text
 crossplane-shared: function-tls-ingress v0.1.2
 tls-ingress-custom-compositions: XRD + Composition + aggregate RBAC
-tls-ingress-custom-xr: default/nginx-custom
+  -> tls-ingress-custom-xr: default/nginx-custom
 ```
 
 Both generated Applications read this repository's `main` and use Kustomize.
@@ -39,11 +39,11 @@ cluster-scoped; the XR and composed resources are namespaced.
 - Sync `crossplane-shared` and verify `function-tls-ingress` is Installed and Healthy
   before relying on the custom group. Parent sync waves only order app creation;
   they do not gate Function readiness.
-- Children auto-sync and self-heal without pruning; RollingSync was removed
-  because it disables auto-sync. Failed syncs retry indefinitely from 5s with
-  exponential backoff capped at 3m. XRs may race XRD/webhook readiness: observe
-  admission failures and recover unhealthy dependencies. Retry and Application
-  Healthy are not readiness guarantees; verify XRD establishment and runtime health.
+- Enable Progressive Syncs via `bootstrap/argocd`, as described in
+  `../01-tls-ingress/README.md`. RollingSync automatically syncs compositions,
+  waits for app health, then syncs XRs. Child `syncPolicy.automated` is intentionally
+  absent; no human sync is required. Verify Argo health coverage and XRD
+  establishment, rather than assuming Application Healthy proves all dependencies ready.
 - Provide the existing `default/app` Service on port **80** and ready
   `selfsigned-ca` ClusterIssuer from the private GitOps repository.
 - Point `app-custom.mujak.com` at the NGINX ingress endpoint. Clients must trust

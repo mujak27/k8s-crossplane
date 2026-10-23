@@ -20,7 +20,7 @@ infra/kustomization.yaml
 
 Add `application.yaml` to the project's directory and reference that file
 directly in `crossplane/kustomization.yaml`. Give the project its own directory and
-ApplicationSet, with automated child sync and the default AllAtOnce strategy. Preserve
+ApplicationSet, with RollingSync automatically orchestrating staged child syncs. Preserve
 separate ownership of shared Functions in `_shared/`.
 
 The registry renders **Applications only**, not every project's resources.
@@ -78,12 +78,16 @@ ruby crossplane/03-istio-secure-egress/validate.rb --render
 ```
 
 Registry inclusion and parent sync waves order app creation, not Crossplane or
-Function readiness. All declared Applications now auto-sync without pruning;
-RollingSync was removed because it forcibly disables child auto-sync. Newly
-automated apps retry failed syncs indefinitely with 5s exponential backoff capped
-at 3m, following the private selfsigned policy. Independent reconciliation can
-race CRDs, webhooks, namespaces and Functions. Retry is not a readiness guarantee:
-admission failures and unhealthy dependencies require observation and recovery.
+Function readiness. The three ApplicationSets retain RollingSync: the controller
+automatically initiates staged syncs for their nine children, whose
+`syncPolicy.automated` is intentionally absent. Progressive Syncs is enabled by
+`bootstrap/argocd`; human child sync is not required. RollingSync orders Argo
+health, not every runtime or security prerequisite.
+Four standalone public Istio Applications and the companion private trust
+Application newly auto-sync with `prune: false`, `selfHeal: true` and unlimited
+retries (5s exponential backoff capped at 3m), following the private selfsigned
+policy. These five apps may race namespaces, CRDs or webhooks; retry is not a
+readiness guarantee. Observe admission failures and recover unhealthy dependencies.
 Follow each project's runtime/TLS/security gates; the secure-egress client stays
 suspended until an explicitly authorized operator resumes it. Automation policy
 does not authorize agents to run live sync, resume or other mutation commands.
