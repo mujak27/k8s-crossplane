@@ -66,7 +66,6 @@ the custom example uses this form at `tls-ingress-custom-v0.1.0`.
 ## Validation and rollout
 
 ```sh
-ruby validate-sync.rb /path/to/k8s-crossplane-private
 kubectl kustomize crossplane
 kubectl kustomize infra
 kubectl kustomize crossplane/_shared
