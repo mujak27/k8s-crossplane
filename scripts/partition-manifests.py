@@ -5,15 +5,17 @@ import sys
 import yaml
 
 mapping = {}
+sources = set()
 with open(sys.argv[1], newline="") as stream:
     for row in csv.reader((line for line in stream if not line.startswith("#")), delimiter="|"):
         if len(row) != 8:
             raise SystemExit(f"[partition] malformed mapping row: {row}")
         api, kind, source, pin, xrd, witness, ref, repo = row
         key = (api, kind)
-        if key in mapping:
-            raise SystemExit(f"[partition] duplicate XR mapping: {key}")
-        mapping[key] = source
+        if source in sources:
+            raise SystemExit(f"[partition] duplicate XR source row: {source}")
+        sources.add(source)
+        mapping.setdefault(key, []).append(source)
 
 general, excluded = [], []
 with open(sys.argv[2]) as stream:
@@ -36,7 +38,8 @@ with open(sys.argv[3], "w") as out:
     yaml.safe_dump_all(general, out, explicit_start=True, sort_keys=False)
 with open(sys.argv[4], "w") as out:
     for (api, kind), doc in excluded:
-        out.write(f"{api}\t{kind}\t{doc.get('metadata', {}).get('name', '')}\n")
+        metadata = doc.get("metadata", {})
+        out.write(f"{api}\t{kind}\t{metadata.get('namespace', '')}\t{metadata.get('name', '')}\n")
 with open(sys.argv[5], "w") as out:
     yaml.safe_dump_all([doc for _, doc in excluded], out, explicit_start=True, sort_keys=False)
 print(f"[partition] general={len(general)} excluded-XR={len(excluded)}")

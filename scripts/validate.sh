@@ -45,7 +45,8 @@ while IFS= read -r root; do
   for candidate in "$root/kustomization.yaml" "$root/kustomization.yml" "$root/Kustomization"; do test ! -f "$candidate" || { kfile=$candidate; break; }; done
   test -n "$kfile" || { echo "[render] missing Kustomization: $root" >&2; exit 1; }
   if [ "$root" = crossplane/01-tls-ingress/compositions ]; then
-    test -z "$(kustomize build "$root")" || { echo "[render] declared empty scaffold now renders resources: $root" >&2; exit 1; }
+    kustomize build "$root" > "$tmp/root.yaml" || { echo "[render] failed: $root" >&2; exit 1; }
+    test ! -s "$tmp/root.yaml" || { echo "[render] declared empty scaffold now renders resources: $root" >&2; exit 1; }
     echo '[render] verified declared empty 01 compositions scaffold'; continue
   fi
   echo "[render] $root"
@@ -101,6 +102,8 @@ for raw in subprocess.check_output(["git", "ls-files", "-z"]).split(b"\0"):
     if rel.is_absolute() or ".." in rel.parts:
         raise SystemExit("[secrets] unsafe tracked path")
     source = pathlib.Path(str(rel))
+    if source.is_symlink():
+        raise SystemExit(f"[secrets] refusing tracked symlink: {rel}")
     if not source.is_file():
         raise SystemExit(f"[secrets] tracked file missing from working tree: {rel}")
     target = root.joinpath(*rel.parts)

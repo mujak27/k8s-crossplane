@@ -16,8 +16,7 @@ tmp=$(mktemp -d "${TMPDIR:-/tmp}/validation-tools.XXXXXX")
 trap 'rm -rf "$tmp"' EXIT HUP INT TERM
 fetch() {
   curl --fail --silent --show-error --location "$1" -o "$tmp/$2"
-  if command -v sha256sum >/dev/null 2>&1; then hashcmd=sha256sum; else hashcmd='shasum -a 256'; fi
-  actual=$(eval "$hashcmd '$tmp/$2'" | awk '{print $1}')
+  if command -v sha256sum >/dev/null 2>&1; then actual=$(sha256sum "$tmp/$2" | awk '{print $1}'); else actual=$(shasum -a 256 "$tmp/$2" | awk '{print $1}'); fi
   test "$actual" = "$3" || { echo "checksum mismatch for $2" >&2; exit 1; }
 }
 fetch "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.6.0/kustomize_v5.6.0_${suffix}.tar.gz" kustomize.tgz "$vhash"
