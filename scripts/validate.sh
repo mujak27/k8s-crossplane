@@ -27,12 +27,27 @@ while IFS='|' read -r apiversion kind source pin xrd witness ref repo; do
   case "$apiversion" in ''|'#'*) continue ;; esac
   python3 scripts/check-pin-witness.py "$witness" "$repo" "$ref" "$xrd" || { echo "[pins] local pin drift for $source ($ref/$xrd not in deployed source at $witness)" >&2; exit 1; }
   case "$ref" in
-    *-v[0-9]*)
-      resolved=$(curl --fail --silent --show-error --location "https://api.github.com/repos/$repo/commits/$ref" | python3 -c 'import json,sys; print(json.load(sys.stdin)["sha"])') || { echo "[pins] cannot resolve public source tag $ref" >&2; exit 1; }
-      test "$resolved" = "$pin" || { echo "[pins] moving source drift: $ref resolves to $resolved, registry records $pin" >&2; exit 1; }
+    ???????*)
+      case "$ref" in
+        *[!0123456789abcdefABCDEF]*) is_commit=false ;;
+        *) test "${#ref}" -eq 40 && is_commit=true || is_commit=false ;;
+      esac
       ;;
-    *) test "$ref" = "$pin" || { echo "[pins] source commit drift: $ref != $pin" >&2; exit 1; } ;;
+    *) is_commit=false ;;
   esac
+  if [ "$is_commit" = true ]; then
+    test "$ref" = "$pin" || { echo "[pins] source commit drift: $ref != $pin" >&2; exit 1; }
+  else
+    # Resolve tags via Git's public transport, not GitHub's rate-limited REST API.
+    if refs=$(git ls-remote --exit-code "https://github.com/$repo.git" "refs/tags/$ref" "refs/tags/$ref^{}"); then
+      resolved=$(printf '%s\n' "$refs" | awk '$2 ~ /\^\{\}$/ {peeled=$1} $2 == "refs/tags/'"$ref"'" {lightweight=$1} END {if (peeled != "") print peeled; else if (lightweight != "") print lightweight}')
+      test -n "$resolved" || { echo "[pins] cannot resolve public source tag $ref" >&2; exit 1; }
+    else
+      echo "[pins] cannot resolve public source tag $ref" >&2
+      exit 1
+    fi
+    test "$resolved" = "$pin" || { echo "[pins] moving source drift: $ref resolves to $resolved, registry records $pin" >&2; exit 1; }
+  fi
 done < validation/xr-sources.tsv
 
 python3 scripts/check-roots.py validation/roots.txt
