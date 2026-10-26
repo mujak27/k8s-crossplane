@@ -9,7 +9,6 @@ trap 'rm -rf "$tmp"' EXIT
 trap 'exit 129' HUP
 trap 'exit 130' INT
 trap 'exit 143' TERM
-export VALIDATION_TMP="$tmp"
 
 python3 -c 'import yaml' >/dev/null 2>&1 || { echo '[tools] PyYAML missing; run scripts/install-validation-tools.sh' >&2; exit 1; }
 test "$(python3 -c 'import yaml; print(yaml.__version__)')" = '6.0.2' || { echo '[tools] expected PyYAML 6.0.2' >&2; exit 1; }
@@ -24,13 +23,9 @@ echo '[yaml] lint tracked YAML'
 git ls-files -z '*.yaml' '*.yml' | xargs -0 -r yamllint -c .yamllint.yaml
 
 echo '[pins] verify upstream source references before any remote render'
-while IFS='|' read -r apiversion kind source pin xrd witness ref; do
+while IFS='|' read -r apiversion kind source pin xrd witness ref repo; do
   case "$apiversion" in ''|'#'*) continue ;; esac
-  python3 scripts/check-pin-witness.py "$witness" "$ref" || { echo "[pins] local pin drift for $source ($ref not in deployed source field at $witness)" >&2; exit 1; }
-  case "$source" in
-    crossplane/01-tls-ingress/*|crossplane/02-tls-ingress-custom/*|crossplane/03-istio-secure-egress/*) repo=mujak27/crossplane-compilations ;;
-    *) echo "[pins] invalid source mapping: $source" >&2; exit 1 ;;
-  esac
+  python3 scripts/check-pin-witness.py "$witness" "$repo" "$ref" "$xrd" || { echo "[pins] local pin drift for $source ($ref/$xrd not in deployed source at $witness)" >&2; exit 1; }
   case "$ref" in
     *-v[0-9]*)
       resolved=$(curl --fail --silent --show-error --location "https://api.github.com/repos/$repo/commits/$ref" | python3 -c 'import json,sys; print(json.load(sys.stdin)["sha"])') || { echo "[pins] cannot resolve public source tag $ref" >&2; exit 1; }
@@ -46,13 +41,16 @@ echo '[render] build registered roots'
 : > "$tmp/rendered.yaml"
 while IFS= read -r root; do
   case "$root" in ''|'#'*) continue ;; esac
-  test -f "$root/kustomization.yaml" || { echo "[render] missing root: $root" >&2; exit 1; }
+  kfile=
+  for candidate in "$root/kustomization.yaml" "$root/kustomization.yml" "$root/Kustomization"; do test ! -f "$candidate" || { kfile=$candidate; break; }; done
+  test -n "$kfile" || { echo "[render] missing Kustomization: $root" >&2; exit 1; }
   if [ "$root" = crossplane/01-tls-ingress/compositions ]; then
-    test "$(find "$root" -type f ! -name 'kustomization.yaml' ! -name 'kustomization.yml' ! -name Kustomization | wc -l | tr -d ' ')" = 0 || { echo "[render] expected empty scaffold, found files under $root" >&2; exit 1; }
-    echo '[render] verified empty 01 compositions scaffold'; continue
+    test -z "$(kustomize build "$root")" || { echo "[render] declared empty scaffold now renders resources: $root" >&2; exit 1; }
+    echo '[render] verified declared empty 01 compositions scaffold'; continue
   fi
   echo "[render] $root"
-  kustomize build "$root" >> "$tmp/rendered.yaml" || { echo "[render] failed: $root" >&2; exit 1; }
+  kustomize build "$root" > "$tmp/root.yaml" || { echo "[render] failed: $root" >&2; exit 1; }
+  cat "$tmp/root.yaml" >> "$tmp/rendered.yaml"
   printf '\n---\n' >> "$tmp/rendered.yaml"
 done < validation/roots.txt
 # Validate every tracked YAML API object, including standalone files. Rendered
@@ -79,23 +77,9 @@ kubeconform -strict -summary -kubernetes-version 1.36.0 \
   -schema-location 'https://raw.githubusercontent.com/yannh/kubernetes-json-schema/f7d855e49c34b039c9ef2196444910275e31e09e/{{.NormalizedKubernetesVersion}}-standalone-strict/{{.ResourceKind}}.json' "$tmp/general.yaml"
 
 echo '[crossplane] validate mapped XR files against same-pin XRDs'
-while IFS='|' read -r apiversion kind source pin xrd witness ref; do
+while IFS='|' read -r apiversion kind source pin xrd witness ref repo; do
   case "$apiversion" in ''|'#'*) continue ;; esac
-  python3 scripts/check-pin-witness.py "$witness" "$ref" || { echo "[crossplane] pin drift for $source ($ref not in deployed source field at $witness)" >&2; exit 1; }
-  case "$source" in
-    crossplane/01-tls-ingress/*) repo=mujak27/crossplane-compilations ;;
-    crossplane/02-tls-ingress-custom/*) repo=mujak27/crossplane-compilations ;;
-    crossplane/03-istio-secure-egress/*) repo=mujak27/crossplane-compilations ;;
-    *) echo "[crossplane] invalid source mapping: $source" >&2; exit 1 ;;
-  esac
   test -f "$source" || { echo "[crossplane] missing XR: $source" >&2; exit 1; }
-  case "$ref" in
-    *-v[0-9]*)
-      resolved=$(curl --fail --silent --show-error --location "https://api.github.com/repos/$repo/commits/$ref" | python3 -c 'import json,sys; print(json.load(sys.stdin)["sha"])') || { echo "[crossplane] cannot resolve public source tag $ref" >&2; exit 1; }
-      test "$resolved" = "$pin" || { echo "[crossplane] source tag drift: $ref resolves to $resolved, expected $pin" >&2; exit 1; }
-      ;;
-    *) test "$ref" = "$pin" || { echo "[crossplane] source commit drift: $ref != $pin" >&2; exit 1; } ;;
-  esac
   xrdfile="$tmp/$(basename "$(dirname "$source")")-xrd.yaml"
   url="https://raw.githubusercontent.com/$repo/$pin/$xrd"
   curl --fail --silent --show-error --location "$url" -o "$xrdfile" || { echo "[crossplane] failed XRD fetch: $url" >&2; exit 1; }
@@ -107,10 +91,21 @@ echo '[coverage] verify every excluded rendered XR has a mapped, validated sourc
 python3 scripts/check-xr-coverage.py validation/xr-sources.tsv "$tmp/xrs.tsv" "$tmp/xr-rendered.yaml"
 
 echo '[secrets] scan tracked working tree only (redacted)'
-tar -cf "$tmp/tracked.tar" -T /dev/null
-git ls-files | while IFS= read -r file; do
-  if [ -f "$file" ]; then tar -rf "$tmp/tracked.tar" "$file"; fi
-done
-mkdir "$tmp/tracked" && tar -xf "$tmp/tracked.tar" -C "$tmp/tracked"
+python3 - "$tmp/tracked" <<'PY'
+import os, pathlib, subprocess, sys
+root = pathlib.Path(sys.argv[1])
+for raw in subprocess.check_output(["git", "ls-files", "-z"]).split(b"\0"):
+    if not raw:
+        continue
+    rel = pathlib.PurePosixPath(os.fsdecode(raw))
+    if rel.is_absolute() or ".." in rel.parts:
+        raise SystemExit("[secrets] unsafe tracked path")
+    source = pathlib.Path(str(rel))
+    if not source.is_file():
+        raise SystemExit(f"[secrets] tracked file missing from working tree: {rel}")
+    target = root.joinpath(*rel.parts)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(source.read_bytes())
+PY
 gitleaks dir --redact --no-banner "$tmp/tracked"
 echo '[done] public manifest validation passed'

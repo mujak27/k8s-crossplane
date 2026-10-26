@@ -1,4 +1,4 @@
-# apiVersion|kind|source|commit|XRD path|pin witness|ref literal
-platform.mujak.com/v1alpha1|XIngressTLS|crossplane/01-tls-ingress/xr/xr.yaml|34640c4c65119295e75ffab660759bc9ea3b0b3e|01-tls-ingress/xrd.yaml|crossplane/01-tls-ingress/applicationset.yaml|34640c4c65119295e75ffab660759bc9ea3b0b3e
-platform.mujak.com/v1alpha1|XIngressTLSCustom|crossplane/02-tls-ingress-custom/xr/xr.yaml|a15c116d7d46515c6e149964cbf450ed56305671|02-tls-ingress-custom/xrd.yaml|crossplane/02-tls-ingress-custom/compositions/kustomization.yaml|tls-ingress-custom-v0.1.0
-platform.mujak.com/v1alpha1|XIstioSecureEgress|crossplane/03-istio-secure-egress/xr/xr.yaml|c9b64ce3cad0c36461e380f5c4f67a1d79ed5aaf|03-istio-secure-egress/xrd.yaml|crossplane/03-istio-secure-egress/compositions/kustomization.yaml|istio-secure-egress-v0.1.0
+# apiVersion|kind|source|commit|XRD path|pin witness|ref literal|repository
+platform.mujak.com/v1alpha1|XIngressTLS|crossplane/01-tls-ingress/xr/xr.yaml|34640c4c65119295e75ffab660759bc9ea3b0b3e|01-tls-ingress/xrd.yaml|crossplane/01-tls-ingress/applicationset.yaml|34640c4c65119295e75ffab660759bc9ea3b0b3e|mujak27/crossplane-compilations
+platform.mujak.com/v1alpha1|XIngressTLSCustom|crossplane/02-tls-ingress-custom/xr/xr.yaml|a15c116d7d46515c6e149964cbf450ed56305671|02-tls-ingress-custom/xrd.yaml|crossplane/02-tls-ingress-custom/compositions/kustomization.yaml|tls-ingress-custom-v0.1.0|mujak27/crossplane-compilations
+platform.mujak.com/v1alpha1|XIstioSecureEgress|crossplane/03-istio-secure-egress/xr/xr.yaml|c9b64ce3cad0c36461e380f5c4f67a1d79ed5aaf|03-istio-secure-egress/xrd.yaml|crossplane/03-istio-secure-egress/compositions/kustomization.yaml|istio-secure-egress-v0.1.0|mujak27/crossplane-compilations

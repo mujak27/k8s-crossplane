@@ -7,9 +7,9 @@ import yaml
 mapping = {}
 with open(sys.argv[1], newline="") as stream:
     for row in csv.reader((line for line in stream if not line.startswith("#")), delimiter="|"):
-        if len(row) != 7:
+        if len(row) != 8:
             raise SystemExit(f"[partition] malformed mapping row: {row}")
-        api, kind, source, pin, xrd, witness, ref = row
+        api, kind, source, pin, xrd, witness, ref, repo = row
         key = (api, kind)
         if key in mapping:
             raise SystemExit(f"[partition] duplicate XR mapping: {key}")
@@ -23,10 +23,8 @@ with open(sys.argv[2]) as stream:
                 continue
             if not isinstance(doc, dict):
                 raise SystemExit("[partition] rendered YAML contains a non-mapping document")
-            if "apiVersion" not in doc and "kind" not in doc:
-                continue
             if not doc.get("apiVersion") or not doc.get("kind"):
-                raise SystemExit(f"[partition] malformed API document missing apiVersion/kind: {doc}")
+                raise SystemExit("[partition] nonempty rendered document missing apiVersion/kind")
             key = (doc["apiVersion"], doc.get("kind"))
             if key in mapping:
                 excluded.append((key, doc))

@@ -16,7 +16,9 @@ jobs:
           python-version: '3.12.8'
       - name: Install pinned validation tools
         run: |
-          python -m pip install --disable-pip-version-check 'yamllint==1.35.1' 'PyYAML==6.0.2' 'pathspec==1.1.1'
+          python -m venv "$RUNNER_TEMP/validation-venv"
+          "$RUNNER_TEMP/validation-venv/bin/python" -m pip install --disable-pip-version-check 'yamllint==1.35.1' 'PyYAML==6.0.2' 'pathspec==1.1.1'
+          echo "$RUNNER_TEMP/validation-venv/bin" >> "$GITHUB_PATH"
           scripts/install-validation-tools.sh "$RUNNER_TEMP/validation-bin"
           echo "$RUNNER_TEMP/validation-bin" >> "$GITHUB_PATH"
       - name: Validate every public manifest
