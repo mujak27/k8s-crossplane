@@ -20,7 +20,12 @@ test "$(crossplane version --client | awk 'NR==1 {print $NF}')" = 'v2.5.0' || { 
 test "$(gitleaks version)" = '8.24.2' || { echo '[tools] expected gitleaks 8.24.2' >&2; exit 1; }
 
 echo '[yaml] lint tracked YAML'
-git ls-files -z '*.yaml' '*.yml' | xargs -0 -r yamllint -c .yamllint.yaml
+python3 - <<'PY' | xargs -0 -r yamllint -c .yamllint.yaml
+import subprocess
+paths = set(filter(None, subprocess.check_output(["git", "ls-files", "-z"]).decode().split("\0")))
+for path in sorted(p for p in paths if p.endswith((".yaml", ".yml")) or p.rsplit("/", 1)[-1] == "Kustomization"):
+    print(path, end="\0")
+PY
 
 echo '[pins] verify upstream source references before any remote render'
 while IFS='|' read -r apiversion kind source pin xrd witness ref repo; do
@@ -54,18 +59,36 @@ python3 scripts/check-roots.py validation/roots.txt
 
 echo '[render] build registered roots'
 : > "$tmp/rendered.yaml"
+remote_count=0
 while IFS= read -r root; do
   case "$root" in ''|'#'*) continue ;; esac
+  expected_empty=false
+  case "$root" in empty\ *) expected_empty=true; root=${root#empty } ;; esac
+  case "$root" in
+    https://raw.githubusercontent.com/*)
+      remote_dir="$tmp/remote-$remote_count"
+      mkdir -p "$remote_dir"
+      printf 'apiVersion: kustomize.config.k8s.io/v1beta1\nkind: Kustomization\nresources:\n  - %s\n' "$root" > "$remote_dir/kustomization.yaml"
+      echo "[render] $root"
+      kustomize build "$remote_dir" > "$tmp/root.yaml" || { echo "[render] failed: $root" >&2; exit 1; }
+      test -s "$tmp/root.yaml" || { echo "[render] no resources: $root" >&2; exit 1; }
+      cat "$tmp/root.yaml" >> "$tmp/rendered.yaml"
+      printf '\n---\n' >> "$tmp/rendered.yaml"
+      remote_count=$((remote_count + 1))
+      continue
+      ;;
+  esac
   kfile=
   for candidate in "$root/kustomization.yaml" "$root/kustomization.yml" "$root/Kustomization"; do test ! -f "$candidate" || { kfile=$candidate; break; }; done
   test -n "$kfile" || { echo "[render] missing Kustomization: $root" >&2; exit 1; }
-  if [ "$root" = crossplane/01-tls-ingress/compositions ]; then
-    kustomize build "$root" > "$tmp/root.yaml" || { echo "[render] failed: $root" >&2; exit 1; }
-    test ! -s "$tmp/root.yaml" || { echo "[render] declared empty scaffold now renders resources: $root" >&2; exit 1; }
-    echo '[render] verified declared empty 01 compositions scaffold'; continue
-  fi
   echo "[render] $root"
   kustomize build "$root" > "$tmp/root.yaml" || { echo "[render] failed: $root" >&2; exit 1; }
+  if [ "$expected_empty" = true ]; then
+    test ! -s "$tmp/root.yaml" || { echo "[render] declared empty root now renders resources: $root" >&2; exit 1; }
+    echo "[render] verified declared empty root: $root"
+    continue
+  fi
+  test -s "$tmp/root.yaml" || { echo "[render] no resources: $root" >&2; exit 1; }
   cat "$tmp/root.yaml" >> "$tmp/rendered.yaml"
   printf '\n---\n' >> "$tmp/rendered.yaml"
 done < validation/roots.txt
@@ -74,6 +97,20 @@ done < validation/roots.txt
 python3 scripts/tracked-yaml.py > "$tmp/tracked-yaml.yaml"
 cat "$tmp/tracked-yaml.yaml" >> "$tmp/rendered.yaml"
 test -s "$tmp/rendered.yaml" || { echo '[render] no output' >&2; exit 1; }
+python3 - "$tmp/tracked-yaml.yaml" <<'PY'
+import sys
+import yaml
+with open(sys.argv[1], encoding="utf-8") as stream:
+    docs = [doc for doc in yaml.safe_load_all(stream) if isinstance(doc, dict)]
+print(f"[count] tracked raw YAML documents: {len(docs)} (informational)")
+PY
+python3 - "$tmp/rendered.yaml" <<'PY'
+import sys
+import yaml
+with open(sys.argv[1], encoding="utf-8") as stream:
+    docs = [doc for doc in yaml.safe_load_all(stream) if isinstance(doc, dict)]
+print(f"[count] rendered YAML documents: {len(docs)} (informational)")
+PY
 
 echo '[partition] classify exact XRs and enforce XRD scope'
 python3 scripts/partition-manifests.py validation/xr-sources.tsv "$tmp/rendered.yaml" "$tmp/general.yaml" "$tmp/xrs.tsv" "$tmp/xr-rendered.yaml"
