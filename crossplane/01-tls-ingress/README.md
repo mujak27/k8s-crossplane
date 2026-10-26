@@ -35,8 +35,8 @@ exist in the cluster; clients must trust the private root CA.
 
 To update the definitions revision, review the exact upstream commit's
 `01-tls-ingress/xrd.yaml`, `composition.yaml`, and `rbac.yaml` against the
-currently deployed revision, including the XRD contract, composed resources,
-and permissions. Record the selected full commit SHA and material differences
+currently declared upstream snapshot, including the XRD contract, composed
+resources, and permissions. Record the selected full commit SHA and material differences
 in this document and the change review, then update only the `compositions`
 element's `targetRevision` above. Validate the candidate XR against that exact
 commit's XRD and inspect/render the declared definitions before rollout. Keep
@@ -45,13 +45,15 @@ definitions into the local `compositions/` scaffold or change that scaffold's
 empty Kustomization. Roll out the reviewed change through the normal GitOps
 review process; do not advance the pin by following upstream `main`.
 
-The selected snapshot is upstream `main` at
-`34640c4c65119295e75ffab660759bc9ea3b0b3e`. Compared with the prior
+The selected snapshot was upstream `main` at review time on 2026-10-27 UTC,
+commit `34640c4c65119295e75ffab660759bc9ea3b0b3e`. Compared with the prior
 `tls-ingress-custom-v0.1.0` tagged snapshot, its XRD and RBAC are unchanged.
 Its Composition intentionally adds current-generation Certificate readiness
 checks, ingress-shape readiness checks, and certificate expiry health
 reporting; these upstream changes are retained as the content already selected
-by the live `main` source, not introduced as local policy.
+by the declared upstream `main` source at review time, not introduced as local
+policy. This review did not inspect or confirm a live cluster's deployed
+revision.
 
 ## Ordering and health
 
