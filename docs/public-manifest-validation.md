@@ -5,13 +5,13 @@ From the repository root, create an isolated Python environment, install pinned 
 ```sh
 python3 -m venv .venv
 . .venv/bin/activate
-python -m pip install 'yamllint==1.35.1' 'PyYAML==6.0.2' 'pathspec==1.1.1'
+python -m pip install --require-hashes -r validation/requirements.txt
 scripts/install-validation-tools.sh
 export PATH="$HOME/.local/k8s-crossplane-validation/bin:$PATH"
 scripts/validate.sh
 ```
 
-The installer verifies SHA-256 checksums for Kustomize 5.6.0, kubeconform 0.6.7, gitleaks 8.24.2, and Crossplane CLI 2.5.0 for macOS/Linux amd64 and arm64. Python packages are version-pinned (not hash-locked). CI runs this exact validation command on every public `pull_request`, including documentation-only changes.
+The installer verifies SHA-256 checksums for Kustomize 5.6.0, kubeconform 0.6.7, gitleaks 8.24.2, and Crossplane CLI 2.5.0 for macOS/Linux amd64 and arm64. Python packages are version- and hash-locked to official PyPI artifacts in `validation/requirements.txt`. CI runs this exact validation command on every public `pull_request`, including documentation-only changes.
 
 `validation/roots.txt` inventories every tracked local Kustomize root; new or missing roots fail enrollment checks. The intentionally empty `crossplane/01-tls-ingress/compositions` scaffold is built and required to produce empty output. The Kustomize roots render Applications and public workloads only; Argo remote/private sources and Helm output are never followed. Tracked Kustomization files and workflow/linter configuration YAML are lint-only; tracked API documents are separately passed to schema partitioning. The root list and `validation/xr-sources.tsv` are the only project-enrollment registries.
 
