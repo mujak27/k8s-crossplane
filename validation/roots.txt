@@ -1,0 +1,35 @@
+# Local Kustomize roots plus explicit public, pinned raw manifests. Prefix an
+# intentionally empty local root with "empty ". Remote entries
+# are rendered individually, never followed recursively as Argo Applications.
+empty apps
+bootstrap/argocd
+crossplane
+crossplane/_shared
+crossplane/01-tls-ingress
+empty crossplane/01-tls-ingress/compositions
+# Live upstream definitions selected by the deployed 01 compositions Application.
+https://raw.githubusercontent.com/mujak27/crossplane-compilations/34640c4c65119295e75ffab660759bc9ea3b0b3e/01-tls-ingress/xrd.yaml
+https://raw.githubusercontent.com/mujak27/crossplane-compilations/34640c4c65119295e75ffab660759bc9ea3b0b3e/01-tls-ingress/composition.yaml
+https://raw.githubusercontent.com/mujak27/crossplane-compilations/34640c4c65119295e75ffab660759bc9ea3b0b3e/01-tls-ingress/rbac.yaml
+crossplane/01-tls-ingress/xr
+crossplane/02-tls-ingress-custom
+crossplane/02-tls-ingress-custom/compositions
+crossplane/02-tls-ingress-custom/xr
+crossplane/03-istio-secure-egress
+crossplane/03-istio-secure-egress/client
+crossplane/03-istio-secure-egress/compositions
+crossplane/03-istio-secure-egress/origin
+crossplane/03-istio-secure-egress/upstream
+crossplane/03-istio-secure-egress/xr
+infra
+infra/cert-manager
+infra/istio-base
+infra/istio-egress
+infra/istio-ingress
+infra/istio-namespaces
+infra/istiod
+infra/kube-state-metrics
+infra/metrics-server
+infra/nginx-ingress
+infra/private
+infra/secure-egress-namespaces
