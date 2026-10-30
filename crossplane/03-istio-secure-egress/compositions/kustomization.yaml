@@ -1,0 +1,7 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  # Definitions only; immutable release commit c9b64ce3cad0c36461e380f5c4f67a1d79ed5aaf.
+  - https://github.com/mujak27/crossplane-compilations//03-istio-secure-egress?ref=istio-secure-egress-v0.1.0
+  - rbac.yaml
+  - profile.yaml

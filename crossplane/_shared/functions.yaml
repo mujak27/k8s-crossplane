@@ -18,3 +18,11 @@ metadata:
   name: function-tls-ingress
 spec:
   package: ghcr.io/mujak27/function-tls-ingress:v0.1.2
+---
+apiVersion: pkg.crossplane.io/v1
+kind: Function
+metadata:
+  name: function-istio-secure-egress
+spec:
+  # Published manifest digest: sha256:91f8e5a989ded2f52c43245d13d09e6111c766de4c5cd5badaed08ebcea5808c
+  package: ghcr.io/mujak27/function-istio-secure-egress:v0.1.0

@@ -15,11 +15,13 @@ spec:
             repoURL: https://github.com/mujak27/crossplane-compilations
             path: 01-tls-ingress
             include: '{xrd.yaml,composition.yaml,rbac.yaml}'
+            targetRevision: 34640c4c65119295e75ffab660759bc9ea3b0b3e
           - stage: xr
             namespace: default
             repoURL: https://github.com/mujak27/k8s-crossplane
             path: crossplane/01-tls-ingress/xr
             include: xr.yaml
+            targetRevision: main
   # This set owns just the TLS dependency group. Other groups get their own set.
   strategy:
     type: RollingSync
@@ -49,7 +51,7 @@ spec:
       project: default
       source:
         repoURL: '{{.repoURL}}'
-        targetRevision: main
+        targetRevision: '{{.targetRevision}}'
         path: '{{.path}}'
         directory:
           recurse: false

@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: origin-headless
+spec:
+  clusterIP: None
+  selector:
+    app: secure-egress-origin
+  ports:
+    - name: https
+      port: 443
+      targetPort: 443
+      protocol: TCP

@@ -6,3 +6,4 @@ resources:
   - _shared/application.yaml
   - 01-tls-ingress/application.yaml
   - 02-tls-ingress-custom/application.yaml
+  - 03-istio-secure-egress/application.yaml

@@ -7,3 +7,5 @@
 | ready-for-agent | ready-for-agent | Fully specified for agent work |
 | ready-for-human | ready-for-human | Human implementation required |
 | wontfix | wontfix | Will not be actioned |
+
+A `ready-for-agent` label does not override blocking dependencies.

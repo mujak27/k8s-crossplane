@@ -1,0 +1,54 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: istio-egress
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"
+spec:
+  project: default
+  source:
+    repoURL: https://blob.istio.io/istio-release/charts
+    chart: gateway
+    # Published archive sha256: bfeb6ecf73586e6992c038daae518d11795e932a7c2d034f6e16c7e60638757e
+    targetRevision: 1.31.1
+    helm:
+      releaseName: istio-egress
+      valuesObject:
+        replicaCount: 1
+        autoscaling:
+          enabled: false
+        labels:
+          app: istio-egress
+          istio: egress
+        podAnnotations:
+          # The gateway injection template honors this full immutable image reference.
+          sidecar.istio.io/proxyImage: docker.io/istio/proxyv2:1.31.1@sha256:d86cba0dd1eb15c00b6901c69ce5ae3d2d5f8427a47751098cf8c3ab2a4a62e9
+        service:
+          type: ClusterIP
+          ports:
+            - name: status-port
+              port: 15021
+              protocol: TCP
+              targetPort: 15021
+            - name: https
+              port: 443
+              protocol: TCP
+              targetPort: 443
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: istio-egress
+  # Retry prerequisite failures. Namespace ownership is in infra only.
+  # Gateway listeners and routes are supplied separately by the demo XR.
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    retry:
+      limit: -1
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+    syncOptions:
+      - ServerSideApply=true

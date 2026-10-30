@@ -1,0 +1,12 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: origin
+spec:
+  secretName: origin-tls
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: selfsigned-ca
+  dnsNames:
+    - origin.origin-headless.secure-egress-origin.svc.cluster.local
