@@ -183,6 +183,8 @@ Permissions:
   explicit authorization before implementation and separate approval before
   merge or live sync; a merge can trigger GitOps reconciliation. Delete,
   cleanup, and other cluster mutations also require explicit approval.
+- Once implementation is authorized, pushing the task branch and opening a PR
+  are allowed; merge remains separately gated above.
 
 Rollback and retirement:
 
