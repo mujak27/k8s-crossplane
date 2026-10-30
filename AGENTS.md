@@ -15,3 +15,7 @@ read `docs/agents/triage-labels.md`.
 ### Domain docs
 Use the single-context layout. Before exploration, read
 `docs/agents/domain.md`.
+
+### Crossplane Function deployment
+Before deploying a custom Function project or changing its shared Function,
+RBAC, XR, or Argo wiring, read `docs/agents/deploy-crossplane-function.md`.

@@ -1,17 +1,13 @@
----
-name: deploy-crossplane-function
-description: Deploy a custom Crossplane function into this GitOps repository from published packages and pinned upstream definitions. Use when adding or deploying a new custom function project, its shared Function, RBAC, XR, or Argo CD wiring.
----
-
 # Deploy a Crossplane function
 
 Read `crossplane/README.md` first. It is the source of truth for registry,
 version, ownership, and standard render conventions; this skill adds deployment
 decisions and completion criteria on top.
 
-This skill supplies the Crossplane contract, wiring, rollout, and validation to
-`plan-to-tickets`. Load that coordinator and follow its worktree, design/plan,
-ticket, and implementation gates; keep orchestration there.
+Use the applicable workspace guidance for task worktrees and nested workers.
+Agree on the design, plan, and breakdown with the user before implementation;
+get approval before publishing tickets and explicit authorization before
+implementation. Keep this document focused on the Crossplane deployment contract.
 
 Deployment consumes published Function packages and published upstream
 definitions. Authoring or publishing a function is out of scope. Missing
@@ -43,10 +39,9 @@ Record before creating files:
   behavior the Composition expects; record it as verified or unverified.
 
 If the package, pin, or definitions-only base is missing, stop and report the
-exact missing artifact. Do not invent a pin, import individual upstream files
-from `main` as legacy `01-tls-ingress` does, or begin upstream authoring. If
-publication, architecture, or compatibility cannot be verified, report it as
-unverified.
+exact missing artifact. Do not invent a pin, import individual upstream files,
+or begin upstream authoring. If publication, architecture, or compatibility
+cannot be verified, report it as unverified.
 
 **Done:** contract recorded with exact refs, resolved evidence, required inputs,
 and compatibility status, or a precise blocker report. Missing artifacts block
@@ -148,6 +143,10 @@ Inspect:
 - Ownership: no duplicate Application names, Function declarations, or
   ClusterRoles.
 
+Enroll every new local Kustomize root and XR mapping in `validation/roots.txt`
+and `validation/xr-sources.tsv`, following `docs/public-manifest-validation.md`.
+Run that document's canonical public validation command when available.
+
 Rendering fetches the remote base, so it needs network access; a fetch failure
 is a reported failure, not a reason to change refs. Rendering proves file
 assembly only. It does not validate OpenAPI schema, Crossplane runtime behavior,
@@ -162,9 +161,10 @@ reported.
 
 Ordering is not readiness:
 
-- Parent sync waves and RollingSync order Application creation only. They do
-  not prove Function health, XRD establishment, RBAC effectiveness, or
-  composed resource readiness.
+- Sync waves and RollingSync sequence Application syncs, but do not by
+  themselves prove Function health, XRD establishment, RBAC effectiveness, or
+  composed resource readiness. Check the project's ApplicationSet policy and
+  rollout prerequisites; RollingSync may sync its stages automatically.
 - Only after explicit live-sync approval, sync `crossplane-shared` and verify
   the Function package is Installed and Healthy before syncing XRs. Confirm the
   XRD is Established and the Composition is selected. Check only the
@@ -179,13 +179,10 @@ Ordering is not readiness:
 
 Permissions:
 
-- Planning, plan approval, ticket publication, and this skill's invocation do
-  not authorize implementation, push, or PR creation.
-- In authorized implementation, pushing the task branch and opening a PR are
-  allowed. Merge, live sync, delete, cleanup, and other cluster mutations each
-  need explicit approval. A merge can trigger GitOps reconciliation.
-- At the breakdown checkpoint, ask the user to invoke `to-tickets`; user-only
-  companions stay with the user.
+- Plan and ticket approval do not authorize implementation. Obtain separate
+  explicit authorization before implementation and separate approval before
+  merge or live sync; a merge can trigger GitOps reconciliation. Delete,
+  cleanup, and other cluster mutations also require explicit approval.
 
 Rollback and retirement:
 
